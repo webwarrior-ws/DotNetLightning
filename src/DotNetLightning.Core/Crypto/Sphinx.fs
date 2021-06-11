@@ -258,45 +258,41 @@ module Sphinx =
             packet: OnionPacket,
             routingInfoFiller: option<array<byte>>
         ) =
-        if (payload.Length <> PayloadLength) then
-            failwithf "Payload length is not %A" PayloadLength
-        else
-            let filler = defaultArg routingInfoFiller ([||])
+        let payloadLen = payload.Length
+        let filler = defaultArg routingInfoFiller ([||])
 
-            let nextRoutingInfo =
-                let routingInfo1 =
-                    seq
-                        [
-                            payload
-                            packet.HMAC.ToBytes()
-                            (packet.HopData
-                             |> Array.skipBack(PayloadLength + MacLength))
-                        ]
-                    |> Array.concat
+        let nextRoutingInfo =
+            let routingInfo1 =
+                seq
+                    [
+                        payload
+                        packet.HMAC.ToBytes()
+                        (packet.HopData
+                         |> Array.skipBack(payloadLen + MacLength))
+                    ]
+                |> Array.concat
 
-                let routingInfo2 =
-                    let rho = generateKey("rho", sharedSecret)
-                    let numHops = MaxHops * (PayloadLength + MacLength)
-                    xor(routingInfo1, generateStream(rho, numHops))
+            let routingInfo2 =
+                let rho = generateKey("rho", sharedSecret)
+                let numHops = MaxHops * (PayloadLength + MacLength)
+                xor(routingInfo1, generateStream(rho, numHops))
 
-                Array.append
-                    (routingInfo2 |> Array.skipBack filler.Length)
-                    filler
+            Array.append (routingInfo2 |> Array.skipBack filler.Length) filler
 
-            let nextHmac =
-                let macKey = generateKey("mu", sharedSecret)
-                let macMsg = (Array.append nextRoutingInfo ad)
-                mac(macKey, macMsg)
+        let nextHmac =
+            let macKey = generateKey("mu", sharedSecret)
+            let macMsg = (Array.append nextRoutingInfo ad)
+            mac(macKey, macMsg)
 
-            let nextPacket =
-                {
-                    OnionPacket.Version = VERSION
-                    PublicKey = ephemeralPubKey.ToBytes()
-                    HopData = nextRoutingInfo
-                    HMAC = nextHmac
-                }
+        let nextPacket =
+            {
+                OnionPacket.Version = VERSION
+                PublicKey = ephemeralPubKey.ToBytes()
+                HopData = nextRoutingInfo
+                HMAC = nextHmac
+            }
 
-            nextPacket
+        nextPacket
 
     module PacketFiller =
         // DeterministicPacketFiller is a packet filler that generates a deterministic
