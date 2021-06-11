@@ -298,6 +298,24 @@ module Sphinx =
 
             nextPacket
 
+    module PacketFiller =
+        // DeterministicPacketFiller is a packet filler that generates a deterministic
+        // set of filler bytes by using chacha20 with a key derived from the session
+        // key.
+        let DeterministicPacketFiller(sessionKey: Key) =
+            generateStream(
+                generateKey("pad", sessionKey.ToBytes()),
+                HopDataSize
+            )
+
+        // BlankPacketFiller is a packet filler that doesn't attempt to fill out the
+        // packet at all. It should ONLY be used for generating test vectors or other
+        // instances that required deterministic packet generation.
+        [<Obsolete("BlankPacketFiller is obsolete, see here: https://github.com/lightningnetwork/lightning-rfc/commit/8dd0b75809c9a7498bb9031a6674e5f58db509f4",
+                   false)>]
+        let BlankPacketFiller _ =
+            Array.zeroCreate HopDataSize
+
     type PacketAndSecrets =
         {
             Packet: OnionPacket
@@ -311,7 +329,8 @@ module Sphinx =
                 sessionKey: Key,
                 pubKeys: list<PubKey>,
                 payloads: list<array<byte>>,
-                ad: array<byte>
+                ad: array<byte>,
+                initialPacketFiller: Key -> array<byte>
             ) =
             let (ephemeralPubKeys, sharedSecrets) =
                 computeEphemeralPublicKeysAndSharedSecrets
@@ -320,13 +339,18 @@ module Sphinx =
 
             let filler = generateFiller "rho" payloads sharedSecrets
 
+            let initialPacket =
+                { OnionPacket.LastPacket with
+                    HopData = initialPacketFiller sessionKey
+                }
+
             let lastPacket =
                 makeNextPacket(
                     payloads |> List.last,
                     ad,
                     ephemeralPubKeys |> List.last,
                     (sharedSecrets |> List.last |> (fun ss -> ss.ToBytes())),
-                    OnionPacket.LastPacket,
+                    initialPacket,
                     Some(filler)
                 )
 
