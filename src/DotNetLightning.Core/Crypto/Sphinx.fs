@@ -29,6 +29,9 @@ module Sphinx =
     let PayloadLength = 33
 
     [<Literal>]
+    let HopDataSize = 1300
+
+    [<Literal>]
     let MacLength = 32
 
     [<Literal>]
@@ -123,26 +126,41 @@ module Sphinx =
 
     let rec internal generateFiller
         (keyType: string)
+        (payloads: list<array<byte>>)
         (sharedSecrets: list<Key>)
-        (hopSize: int)
-        (maxNumberOfHops: option<int>)
         =
-        let maxHopN = defaultArg maxNumberOfHops MaxHops
+        let fillerSize =
+            payloads.[1..]
+            |> List.sumBy(fun payload -> payload.Length + MacLength)
 
-        sharedSecrets
-        |> List.fold
-            (fun (padding: array<byte>) (secret: Key) ->
-                let key = generateKey(keyType, secret.ToBytes())
-                let padding1 = Array.append padding (zeros hopSize)
+        let rec fillInner (filler: array<byte>) (i: int) : array<byte> =
+            if i = payloads.Length - 1 then
+                filler
+            else
+                let fillerOffset =
+                    payloads.[.. i - 1]
+                    |> List.sumBy(fun payload -> payload.Length + MacLength)
+
+                let fillerStart = HopDataSize - fillerOffset
+                let fillerEnd = HopDataSize + payloads.[i].Length + MacLength
+                let fillerLength = fillerEnd - fillerStart
+
+                let key = generateKey(keyType, sharedSecrets.[i].ToBytes())
 
                 let stream =
-                    let s = generateStream(key, hopSize * (maxHopN + 1))
-                    s.[s.Length - padding1.Length .. s.Length - 1] // take padding1 from tale
+                    let s = generateStream(key, fillerEnd)
+                    s.[fillerStart .. fillerEnd - 1]
 
-                assert (stream.Length = padding1.Length)
-                xor(padding1, stream)
-            )
-            [||]
+                let newFiller =
+                    [
+                        xor(Array.take fillerLength filler, stream)
+                        Array.skip fillerLength filler
+                    ]
+                    |> Array.concat
+
+                fillInner newFiller (i + 1)
+
+        fillInner (Array.zeroCreate fillerSize) 0
 
     type ParsedPacket =
         {
@@ -300,12 +318,7 @@ module Sphinx =
                     (sessionKey)
                     (pubKeys)
 
-            let filler =
-                generateFiller
-                    "rho"
-                    sharedSecrets.[0 .. sharedSecrets.Length - 2]
-                    (PayloadLength + MacLength)
-                    (Some MaxHops)
+            let filler = generateFiller "rho" payloads sharedSecrets
 
             let lastPacket =
                 makeNextPacket(
