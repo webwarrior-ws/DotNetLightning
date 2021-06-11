@@ -885,8 +885,7 @@ let tlvOnionPayloadGen =
         let! tlv =
             Gen.nonEmptyListOf onionPayloadTlvGen |> Gen.map(List.toArray)
 
-        let! hmac = uint256Gen
-        return (tlv, hmac) |> OnionPayload.TLVPayload
+        return OnionPayload.TLVPayload tlv
     }
 
 let private legacyOnionPayloadGen =
