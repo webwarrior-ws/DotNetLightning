@@ -260,7 +260,7 @@ type HopPayloadTLV =
     | AmountToForward of LNMoney
     | OutgoingCLTV of uint32
     | ShortChannelId of ShortChannelId
-    | PaymentData of paymentSecret: PaymentPreimage * totalMsat: LNMoney
+    | PaymentData of paymentSecret: PaymentSecret * totalMsat: LNMoney
     | Unknown of GenericTLV
 
     static member FromGenericTLV(tlv: GenericTLV) =
@@ -273,11 +273,11 @@ type HopPayloadTLV =
         | 6UL -> ShortChannelId.From8Bytes tlv.Value |> ShortChannelId
         | 8UL ->
             let secret =
-                tlv.Value.[0 .. PaymentPreimage.LENGTH - 1]
-                |> PaymentPreimage.Create
+                tlv.Value.[0 .. PaymentSecret.LENGTH - 1]
+                |> PaymentSecret.FromByteArray
 
             let totalMSat =
-                UInt64.FromTruncatedBytes tlv.Value.[PaymentPreimage.LENGTH ..]
+                UInt64.FromTruncatedBytes tlv.Value.[PaymentSecret.LENGTH ..]
                 |> LNMoney.MilliSatoshis
 
             (secret, totalMSat) |> PaymentData
