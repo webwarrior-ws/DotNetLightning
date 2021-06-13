@@ -2,6 +2,7 @@ namespace DotNetLightning.Serialization
 
 
 open DotNetLightning.Utils
+open DotNetLightning.Core.Utils.Extensions
 open System
 open NBitcoin
 
@@ -265,21 +266,18 @@ type HopPayloadTLV =
     static member FromGenericTLV(tlv: GenericTLV) =
         match tlv.Type with
         | 2UL ->
-            NBitcoin.Utils.ToUInt64(tlv.Value, false)
+            UInt64.FromTruncatedBytes tlv.Value
             |> LNMoney.MilliSatoshis
             |> AmountToForward
-        | 4UL -> NBitcoin.Utils.ToUInt32(tlv.Value, false) |> OutgoingCLTV
-        | 6UL -> ShortChannelId.From8Bytes(tlv.Value) |> ShortChannelId
+        | 4UL -> UInt32.FromTruncatedBytes tlv.Value |> OutgoingCLTV
+        | 6UL -> ShortChannelId.From8Bytes tlv.Value |> ShortChannelId
         | 8UL ->
             let secret =
                 tlv.Value.[0 .. PaymentPreimage.LENGTH - 1]
                 |> PaymentPreimage.Create
 
             let totalMSat =
-                NBitcoin.Utils.ToUInt64(
-                    tlv.Value.[PaymentPreimage.LENGTH ..],
-                    false
-                )
+                UInt64.FromTruncatedBytes tlv.Value.[PaymentPreimage.LENGTH ..]
                 |> LNMoney.MilliSatoshis
 
             (secret, totalMSat) |> PaymentData
@@ -290,12 +288,12 @@ type HopPayloadTLV =
         | AmountToForward x ->
             {
                 Type = 2UL
-                Value = Utils.ToBytes(uint64 x.MilliSatoshi, false)
+                Value = (uint64 x.MilliSatoshi).GetTruncatedBytes()
             }
         | OutgoingCLTV x ->
             {
                 Type = 4UL
-                Value = Utils.ToBytes(x, false)
+                Value = x.GetTruncatedBytes()
             }
         | ShortChannelId x ->
             {
@@ -307,7 +305,7 @@ type HopPayloadTLV =
                 Array.concat
                     [
                         secret.ToByteArray()
-                        Utils.ToBytes(uint64 amount.MilliSatoshi, false)
+                        (uint64 amount.MilliSatoshi).GetTruncatedBytes()
                     ]
 
             {
