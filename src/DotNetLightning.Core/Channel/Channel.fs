@@ -258,6 +258,7 @@ and ChannelWaitingForFundingCreated =
                             .GetTxId()
                     RemotePerCommitmentPoint =
                         this.RemoteFirstPerCommitmentPoint
+                    SentAfterLocalCommitIndex = localCommit.Index
                 }
 
             let channel =
@@ -421,6 +422,8 @@ and ChannelWaitingForFundingTx =
                                     .GetTxId()
                             RemotePerCommitmentPoint =
                                 this.RemoteFirstPerCommitmentPoint
+                            SentAfterLocalCommitIndex =
+                                CommitmentNumber.FirstCommitment
                         }
                 }
 
@@ -740,14 +743,8 @@ and Channel =
                 ChannelId =
                     this.SavedChannelState.StaticChannelConfig.ChannelId()
                 NextCommitmentNumber =
-                    (this
-                        .SavedChannelState
-                        .RemotePerCommitmentSecrets
-                        .NextCommitmentNumber()
-                        .NextCommitment())
-                NextRevocationNumber =
-                    this.SavedChannelState.RemotePerCommitmentSecrets.NextCommitmentNumber
-                        ()
+                    this.SavedChannelState.LocalCommit.Index.NextCommitment()
+                NextRevocationNumber = this.SavedChannelState.RemoteCommit.Index
                 DataLossProtect =
                     OptionalField.Some
                     <| {
@@ -756,7 +753,7 @@ and Channel =
                                    ()
                            MyCurrentPerCommitmentPoint =
                                commitmentSeed.DerivePerCommitmentPoint
-                                   this.SavedChannelState.RemoteCommit.Index
+                                   this.SavedChannelState.LocalCommit.Index
                        }
             }
 
@@ -884,7 +881,8 @@ and Channel =
                 // we need to base the next current commitment on the last sig we sent, even if we didn't yet receive their revocation
                 let remoteCommit1 =
                     match remoteNextCommitInfo with
-                    | Waiting nextRemoteCommit -> nextRemoteCommit
+                    | Waiting waitingForRevocation ->
+                        waitingForRevocation.NextRemoteCommit
                     | Revoked _info -> this.SavedChannelState.RemoteCommit
 
                 let! reduced =
@@ -1175,7 +1173,7 @@ and Channel =
             | RemoteNextCommitInfo.Revoked _ ->
                 let errorMsg = sprintf "Unexpected revocation"
                 return! Error <| invalidRevokeAndACK msg errorMsg
-            | RemoteNextCommitInfo.Waiting theirNextCommit ->
+            | RemoteNextCommitInfo.Waiting waitingForRevocation ->
                 let remotePerCommitmentSecretsOpt =
                     this.SavedChannelState.RemotePerCommitmentSecrets.InsertPerCommitmentSecret
                         this.SavedChannelState.RemoteCommit.Index
@@ -1189,7 +1187,7 @@ and Channel =
                         { this.SavedChannelState with
                             RemotePerCommitmentSecrets =
                                 remotePerCommitmentSecrets
-                            RemoteCommit = theirNextCommit
+                            RemoteCommit = waitingForRevocation.NextRemoteCommit
                             LocalChanges =
                                 { this.SavedChannelState.LocalChanges with
                                     Signed = []
@@ -1631,8 +1629,8 @@ and Channel =
 
         let remoteCommit =
             match remoteNextCommitInfo with
-            | Some(RemoteNextCommitInfo.Waiting nextRemoteCommit) ->
-                nextRemoteCommit
+            | Some(RemoteNextCommitInfo.Waiting waitingForRevokation) ->
+                waitingForRevokation.NextRemoteCommit
             | _ -> savedChannelState.RemoteCommit
 
         let reducedRes =
@@ -1775,7 +1773,13 @@ and Channel =
                         SavedChannelState = nextSavedChannelState
                         RemoteNextCommitInfo =
                             Some
-                            <| RemoteNextCommitInfo.Waiting nextRemoteCommitInfo
+                            <| RemoteNextCommitInfo.Waiting
+                                {
+                                    NextRemoteCommit = nextRemoteCommitInfo
+                                    SentSig = msg
+                                    SentAfterLocalCommitIndex =
+                                        savedChannelState.LocalCommit.Index
+                                }
                     }
 
                 return msg, channel

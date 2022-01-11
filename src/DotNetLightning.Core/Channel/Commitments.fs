@@ -56,15 +56,24 @@ type RemoteCommit =
         Spec: CommitmentSpec
         TxId: TxId
         RemotePerCommitmentPoint: PerCommitmentPoint
+        SentAfterLocalCommitIndex: CommitmentNumber
+    }
+
+type WaitingForRevocation =
+    {
+        NextRemoteCommit: RemoteCommit
+        SentSig: CommitmentSignedMsg
+        SentAfterLocalCommitIndex: CommitmentNumber
     }
 
 type RemoteNextCommitInfo =
-    | Waiting of RemoteCommit
+    | Waiting of WaitingForRevocation
     | Revoked of PerCommitmentPoint
 
     member this.PerCommitmentPoint() : PerCommitmentPoint =
         match this with
-        | Waiting remoteCommit -> remoteCommit.RemotePerCommitmentPoint
+        | Waiting waitingForRevocation ->
+            waitingForRevocation.NextRemoteCommit.RemotePerCommitmentPoint
         | Revoked perCommitmentPoint -> perCommitmentPoint
 
 type Amounts =

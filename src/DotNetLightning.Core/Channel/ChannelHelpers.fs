@@ -6,6 +6,7 @@ open DotNetLightning.Chain
 open DotNetLightning.Utils
 open DotNetLightning.Channel
 open DotNetLightning.Crypto
+open DotNetLightning.Serialization.Msgs
 open DotNetLightning.Transactions
 
 open ResultUtils
@@ -29,6 +30,155 @@ module internal ChannelConstantHelpers =
     let getOurChannelReserve(channelValue: Money) =
         let q = channelValue / 100L
         Money.Min(channelValue, Money.Max(q, Money.Satoshis(1L)))
+
+
+module internal ChannelSyncing =
+    type SyncResult =
+        | RemoteLate
+        | LocalLateProven of
+            ourLocalCommitmentNumber: CommitmentNumber *
+            theirRemoteCommitmentNumber: CommitmentNumber *
+            currentPerCommitmentPoint: PerCommitmentPoint
+        | LocalLateUnproven of
+            ourRemoteCommitmentNumber: CommitmentNumber *
+            theirLocalCommitmentNumber: CommitmentNumber
+        | RemoteLying of
+            ourLocalCommitmentNumber: CommitmentNumber *
+            theirRemoteCommitmentNumber: CommitmentNumber *
+            invalidPerCommitmentSecret: PerCommitmentSecret
+        | Success of retransmitRevocation: list<ILightningMsg>
+
+    let checkSync
+        (channelPrivKeys: ChannelPrivKeys)
+        (savedChannelState: SavedChannelState)
+        (remoteNextCommitInfo: Option<RemoteNextCommitInfo>)
+        (remoteChannelReestablish: ChannelReestablishMsg)
+        : SyncResult =
+        let checkRemoteCommit(retransmitRevocationList: list<ILightningMsg>) =
+            // NOTE: since CommitmentNumber in DNL goes backwards (from 2^48 to 0), all comparison signs are reversed
+            match remoteNextCommitInfo with
+            | Some(Waiting waitingForRevocation) when
+                remoteChannelReestablish.NextCommitmentNumber = waitingForRevocation.NextRemoteCommit.Index
+                ->
+                // we just sent a new commit_sig but they didn't receive it
+                // we resend the same updates and the same sig, and preserve the same ordering
+                let signedUpdates =
+                    savedChannelState.LocalChanges.Signed
+                    |> List.map(fun msg -> msg :> ILightningMsg)
+
+                let commitSigList =
+                    waitingForRevocation.SentSig :> ILightningMsg
+                    |> List.singleton
+
+                match List.tryHead retransmitRevocationList with
+                | None -> SyncResult.Success(signedUpdates @ commitSigList)
+                | Some _ when
+                    savedChannelState.LocalCommit.Index < waitingForRevocation.SentAfterLocalCommitIndex
+                    ->
+                    SyncResult.Success(
+                        signedUpdates @ commitSigList @ retransmitRevocationList
+                    )
+                | Some _ ->
+                    SyncResult.Success(
+                        retransmitRevocationList @ signedUpdates @ commitSigList
+                    )
+            | Some(Waiting waitingForRevocation) when
+                remoteChannelReestablish.NextCommitmentNumber = (waitingForRevocation.NextRemoteCommit.Index.NextCommitment
+                                                                     ())
+                ->
+                // we just sent a new commit_sig, they have received it but we haven't received their revocation
+                SyncResult.Success retransmitRevocationList
+            | Some(Waiting waitingForRevocation) when
+                remoteChannelReestablish.NextCommitmentNumber > waitingForRevocation.NextRemoteCommit.Index
+                ->
+                SyncResult.RemoteLate
+            | Some(Waiting waitingForRevocation) ->
+                SyncResult.LocalLateUnproven(
+                    waitingForRevocation.NextRemoteCommit.Index,
+                    remoteChannelReestablish.NextCommitmentNumber.PreviousCommitment
+                        ()
+                )
+            | Some(Revoked _) when
+                remoteChannelReestablish.NextCommitmentNumber = savedChannelState.RemoteCommit.Index.NextCommitment
+                                                                    ()
+                ->
+                SyncResult.Success retransmitRevocationList
+            | Some(Revoked _) when
+                remoteChannelReestablish.NextCommitmentNumber > savedChannelState.RemoteCommit.Index.NextCommitment
+                                                                    ()
+                ->
+                SyncResult.RemoteLate
+            | Some(Revoked _) ->
+                SyncResult.LocalLateUnproven(
+                    savedChannelState.RemoteCommit.Index,
+                    remoteChannelReestablish.NextCommitmentNumber.PreviousCommitment
+                        ()
+                )
+            | None ->
+                //I think this means the funding isn't locked yet so who cares
+                SyncResult.Success List.empty
+
+        if savedChannelState.LocalCommit.Index = remoteChannelReestablish.NextRevocationNumber then
+            checkRemoteCommit List.empty
+        elif savedChannelState.LocalCommit.Index = remoteChannelReestablish.NextRevocationNumber.NextCommitment
+                                                       () then
+            // they just sent a new commit_sig, we have received it but they didn't receive our revocation
+            let localPerCommitmentSecret =
+                channelPrivKeys.CommitmentSeed.DerivePerCommitmentSecret
+                    savedChannelState.LocalCommit.Index
+
+            let localNextPerCommitmentPoint =
+                let perCommitmentSecret =
+                    channelPrivKeys.CommitmentSeed.DerivePerCommitmentSecret(
+                        savedChannelState
+                            .LocalCommit
+                            .Index
+                            .NextCommitment()
+                            .NextCommitment()
+                    )
+
+                perCommitmentSecret.PerCommitmentPoint()
+
+            let nextMsg =
+                {
+                    RevokeAndACKMsg.ChannelId =
+                        savedChannelState.StaticChannelConfig.ChannelId()
+                    PerCommitmentSecret = localPerCommitmentSecret
+                    NextPerCommitmentPoint = localNextPerCommitmentPoint
+                }
+                :> ILightningMsg
+
+            checkRemoteCommit(List.singleton nextMsg)
+        elif savedChannelState.LocalCommit.Index < remoteChannelReestablish.NextRevocationNumber.NextCommitment
+                                                       () then
+            SyncResult.RemoteLate
+        else
+            match remoteChannelReestablish.DataLossProtect with
+            | Some dataLossProtect ->
+                if
+                    Some
+                        (
+                            channelPrivKeys
+                                .CommitmentSeed
+                                .DerivePerCommitmentSecret(
+                                    remoteChannelReestablish.NextRevocationNumber.PreviousCommitment
+                                        ()
+                                )
+                        ) = dataLossProtect.YourLastPerCommitmentSecret
+                then
+                    SyncResult.LocalLateProven(
+                        savedChannelState.LocalCommit.Index,
+                        remoteChannelReestablish.NextRevocationNumber,
+                        dataLossProtect.MyCurrentPerCommitmentPoint
+                    )
+                else
+                    SyncResult.RemoteLying(
+                        savedChannelState.LocalCommit.Index,
+                        remoteChannelReestablish.NextRevocationNumber,
+                        dataLossProtect.YourLastPerCommitmentSecret.Value
+                    )
+            | None -> SyncResult.Success []
+
 
 module ClosingHelpers =
     let TxVersionNumberOfCommitmentTxs = 2u
@@ -1477,14 +1627,14 @@ module ClosingHelpers =
                 savedChannelState.RemoteCommit
         else
             match remoteNextCommitInfoOpt with
-            | Some(Waiting remoteNextCommit) when
-                closingTxId = remoteNextCommit.TxId
+            | Some(Waiting waitingForRevokation) when
+                closingTxId = waitingForRevokation.NextRemoteCommit.TxId
                 ->
                 RemoteClose.ClaimCommitTxOutputs
                     closingTx
                     savedChannelState.StaticChannelConfig
                     channelPrivKeys
-                    remoteNextCommit
+                    waitingForRevokation.NextRemoteCommit
             | _ ->
                 RevokedClose.ClaimCommitTxOutputs
                     closingTx
@@ -1527,12 +1677,12 @@ module ClosingHelpers =
                 hash2preimage
         else
             match remoteNextCommitInfoOpt with
-            | Some(Waiting remoteNextCommit) when
-                closingTxId = remoteNextCommit.TxId
+            | Some(Waiting waitingForRevokation) when
+                closingTxId = waitingForRevokation.NextRemoteCommit.TxId
                 ->
                 RemoteClose.UnresolvedHtlcList
                     closingTx
-                    remoteNextCommit
+                    waitingForRevokation.NextRemoteCommit
                     savedChannelState.StaticChannelConfig
                     hash2preimage
             | _ -> RevokedClose.UnresolvedHtlcList closingTx savedChannelState
@@ -1576,13 +1726,13 @@ module ClosingHelpers =
                 localChannelPrivKeys
         else
             match remoteNextCommitInfoOpt with
-            | Some(Waiting remoteNextCommit) when
-                closingTxId = remoteNextCommit.TxId
+            | Some(Waiting waitingForRevokation) when
+                closingTxId = waitingForRevokation.NextRemoteCommit.TxId
                 ->
                 RemoteClose.ClaimHtlcOutput
                     htlcInfo
                     closingTx
-                    remoteNextCommit
+                    waitingForRevokation.NextRemoteCommit
                     savedChannelState.StaticChannelConfig
                     localChannelPrivKeys
             | _ ->
@@ -1625,8 +1775,8 @@ module ClosingHelpers =
             None
         else
             match remoteNextCommitInfoOpt with
-            | Some(Waiting remoteNextCommit) when
-                closingTxId = remoteNextCommit.TxId
+            | Some(Waiting waitingForRevokation) when
+                closingTxId = waitingForRevokation.NextRemoteCommit.TxId
                 ->
                 None
             | _ ->
