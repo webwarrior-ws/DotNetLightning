@@ -83,7 +83,7 @@ type SavedChannelState =
             let remoteCommit =
                 match remoteNextCommitInfo with
                 | Revoked _ -> this.RemoteCommit
-                | Waiting nextRemoteCommit -> nextRemoteCommit
+                | Waiting waitingForRevocation -> waitingForRevocation.NextRemoteCommit
 
             Map.tryFind htlcId remoteCommit.Spec.IncomingHTLCs
 
@@ -102,7 +102,7 @@ type SavedChannelState =
             let remoteCommit =
                 match remoteNextCommitInfo with
                 | Revoked _ -> this.RemoteCommit
-                | Waiting nextRemoteCommit -> nextRemoteCommit
+                | Waiting waitingForRevocation -> waitingForRevocation.NextRemoteCommit
 
             Map.tryFind htlcId remoteCommit.Spec.OutgoingHTLCs
 

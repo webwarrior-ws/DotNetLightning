@@ -884,7 +884,7 @@ and Channel =
                 // we need to base the next current commitment on the last sig we sent, even if we didn't yet receive their revocation
                 let remoteCommit1 =
                     match remoteNextCommitInfo with
-                    | Waiting nextRemoteCommit -> nextRemoteCommit
+                    | Waiting waitingForRevocation -> waitingForRevocation.NextRemoteCommit
                     | Revoked _info -> this.SavedChannelState.RemoteCommit
 
                 let! reduced =
@@ -1175,7 +1175,7 @@ and Channel =
             | RemoteNextCommitInfo.Revoked _ ->
                 let errorMsg = sprintf "Unexpected revocation"
                 return! Error <| invalidRevokeAndACK msg errorMsg
-            | RemoteNextCommitInfo.Waiting theirNextCommit ->
+            | RemoteNextCommitInfo.Waiting waitingForRevocation ->
                 let remotePerCommitmentSecretsOpt =
                     this.SavedChannelState.RemotePerCommitmentSecrets.InsertPerCommitmentSecret
                         this.SavedChannelState.RemoteCommit.Index
@@ -1189,7 +1189,7 @@ and Channel =
                         { this.SavedChannelState with
                             RemotePerCommitmentSecrets =
                                 remotePerCommitmentSecrets
-                            RemoteCommit = theirNextCommit
+                            RemoteCommit = waitingForRevocation.NextRemoteCommit
                             LocalChanges =
                                 { this.SavedChannelState.LocalChanges with
                                     Signed = []
@@ -1776,7 +1776,7 @@ and Channel =
                         RemoteNextCommitInfo =
                             Some
                             <| RemoteNextCommitInfo.Waiting nextRemoteCommitInfo
-                        SentAfterLocalCommitIndex = savedChannelState.LocalCommit.Index
+                            SentAfterLocalCommitIndex = savedChannelState.LocalCommit.Index
                     }
 
                 return msg, channel
