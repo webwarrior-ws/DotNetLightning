@@ -1776,6 +1776,7 @@ and Channel =
                         RemoteNextCommitInfo =
                             Some
                             <| RemoteNextCommitInfo.Waiting nextRemoteCommitInfo
+                        SentAfterLocalCommitIndex = savedChannelState.LocalCommit.Index
                     }
 
                 return msg, channel
