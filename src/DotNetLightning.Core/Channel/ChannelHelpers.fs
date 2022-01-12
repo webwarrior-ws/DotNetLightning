@@ -71,12 +71,8 @@ module internal ChannelSyncing =
 
                 match List.tryHead retransmitRevocationList with
                 | None
-                | Some _ when
-                    savedChannelState.LocalCommit.Index > waitingForRevocation.SentAfterLocalCommitIndex
-                    ->
-                    SyncResult.Success(
-                        signedUpdates @ commitSigList @ retransmitRevocationList
-                    )
+                | Some _ when savedChannelState.LocalCommit.Index < waitingForRevocation.SentAfterLocalCommitIndex ->
+                    SyncResult.Success (signedUpdates @ commitSigList @ retransmitRevocationList)
                 | Some _ ->
                     SyncResult.Success(
                         retransmitRevocationList @ signedUpdates @ commitSigList
@@ -88,9 +84,7 @@ module internal ChannelSyncing =
                 ->
                 // we just sent a new commit_sig, they have received it but we haven't received their revocation
                 SyncResult.Success retransmitRevocationList
-            | Some(Waiting waitingForRevocation) when
-                remoteChannelReestablish.NextCommitmentNumber < waitingForRevocation.NextRemoteCommit.Index
-                ->
+            | Some (Waiting waitingForRevocation) when remoteChannelReestablish.NextCommitmentNumber > waitingForRevocation.NextRemoteCommit.Index ->
                 SyncResult.RemoteLate
             | Some(Waiting waitingForRevocation) ->
                 SyncResult.LocalLateUnproven(
@@ -103,10 +97,7 @@ module internal ChannelSyncing =
                                                                     ()
                 ->
                 SyncResult.Success retransmitRevocationList
-            | Some(Revoked _) when
-                remoteChannelReestablish.NextCommitmentNumber < savedChannelState.RemoteCommit.Index.NextCommitment
-                                                                    ()
-                ->
+            | Some (Revoked _) when remoteChannelReestablish.NextCommitmentNumber > savedChannelState.RemoteCommit.Index.NextCommitment() ->
                 SyncResult.RemoteLate
             | Some(Revoked _) ->
                 SyncResult.LocalLateUnproven(
@@ -149,8 +140,7 @@ module internal ChannelSyncing =
                 :> ILightningMsg
 
             checkRemoteCommit(List.singleton nextMsg)
-        elif savedChannelState.LocalCommit.Index > remoteChannelReestablish.NextRevocationNumber.NextCommitment
-                                                       () then
+        elif savedChannelState.LocalCommit.Index < remoteChannelReestablish.NextRevocationNumber.NextCommitment() then
             SyncResult.RemoteLate
         else
             match remoteChannelReestablish.DataLossProtect with
