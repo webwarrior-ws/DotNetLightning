@@ -175,6 +175,8 @@ let getRemote() : RemoteConfig =
 
 let n = Network.RegTest
 
+let channelType = ChannelType.Normal
+
 let coinbaseTx =
     Transaction.Parse(
         "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff03510101ffffffff0100f2052a010000001976a9143ca33c2e4446f4a305f23c80df8ad1afdcf652f988ac00000000",
@@ -311,7 +313,7 @@ let outgoingHtlcs =
         }
     ]
 
-let incomingHtlcScripts =
+let incomingHtlcScripts(commitmentFormat: CommitmentFormat) =
     incomingHtlcs
     |> List.map(fun htlc ->
         Scripts.htlcReceived
@@ -321,9 +323,10 @@ let incomingHtlcScripts =
             (local.RevocationPubKey)
             (htlc.PaymentHash)
             (htlc.CLTVExpiry.Value)
+            commitmentFormat.HtlcCsvLock
     )
 
-let outgoingHtlcScripts =
+let outgoingHtlcScripts(commitmentFormat: CommitmentFormat) =
     outgoingHtlcs
     |> List.map(fun htlc ->
         Scripts.htlcOffered
@@ -332,6 +335,7 @@ let outgoingHtlcScripts =
             (HtlcPubKey <| remote.PaymentPrivKey.PaymentPubKey().RawPubKey())
             (local.RevocationPubKey)
             (htlc.PaymentHash)
+            commitmentFormat.HtlcCsvLock
     )
 
 let run(spec: CommitmentSpec) : (Transaction * _) =
@@ -356,18 +360,27 @@ let run(spec: CommitmentSpec) : (Transaction * _) =
                 // FIXME: payment keys being used as htlc keys??
                 (HtlcPubKey <| local.PaymentPrivKey.PaymentPubKey().RawPubKey())
                 (HtlcPubKey <| remote.PaymentPrivKey.PaymentPubKey().RawPubKey())
+                (local.FundingPrivKey.FundingPubKey())
+                (remote.FundingPrivKey.FundingPubKey())
                 (spec)
+                channelType.CommitmentFormat
                 (n)
         // test vectors requires us to use RFC6974
         let localSig, tx2 =
             Transactions.signCore(
                 commitTx,
                 local.FundingPrivKey.RawKey(),
-                false
+                false,
+                SigHash.All
             )
 
         let remoteSig, tx3 =
-            Transactions.signCore(tx2, remote.FundingPrivKey.RawKey(), false)
+            Transactions.signCore(
+                tx2,
+                remote.FundingPrivKey.RawKey(),
+                false,
+                SigHash.All
+            )
 
         Transactions.checkSigAndAdd
             (tx3)
@@ -382,7 +395,12 @@ let run(spec: CommitmentSpec) : (Transaction * _) =
             | Ok e -> e
             | Error e -> failwithf "%A" e
 
-    let baseFee = Transactions.commitTxFee (local.DustLimit) (spec)
+    let baseFee =
+        Transactions.commitTxFee
+            (local.DustLimit)
+            (spec)
+            channelType.CommitmentFormat
+
     log(sprintf "base commitment transaction fee is %A" baseFee)
 
     let actualFee =
@@ -407,11 +425,11 @@ let run(spec: CommitmentSpec) : (Transaction * _) =
         | 34 ->
             let htlcScriptOpt =
                 Option.orElse
-                    (incomingHtlcScripts
+                    (incomingHtlcScripts channelType.CommitmentFormat
                      |> List.tryFind(fun s ->
                          s.WitHash.ScriptPubKey = txOut.ScriptPubKey
                      ))
-                    (outgoingHtlcScripts
+                    (outgoingHtlcScripts channelType.CommitmentFormat
                      |> List.tryFind(fun s ->
                          s.WitHash.ScriptPubKey = txOut.ScriptPubKey
                      ))
@@ -459,6 +477,7 @@ let run(spec: CommitmentSpec) : (Transaction * _) =
             (HtlcPubKey <| local.PaymentPrivKey.PaymentPubKey().RawPubKey())
             (HtlcPubKey <| remote.PaymentPrivKey.PaymentPubKey().RawPubKey())
             spec
+            channelType.CommitmentFormat
             n
         |> Result.defaultWith(fun _ ->
             failwith "fail(BOLT3 transactions): couldn't make HTLC transactions"
@@ -489,14 +508,16 @@ let run(spec: CommitmentSpec) : (Transaction * _) =
                     Transactions.signCore(
                         tx,
                         local.PaymentPrivKey.RawKey(),
-                        false
+                        false,
+                        channelType.CommitmentFormat.HtlcSigHash
                     )
 
                 let remoteSig, _tx3 =
                     Transactions.signCore(
                         tx2,
                         remote.PaymentPrivKey.RawKey(),
-                        false
+                        false,
+                        channelType.CommitmentFormat.HtlcSigHash
                     )
                 // just checking preimage is in global list
                 let paymentPreimage =
@@ -513,14 +534,16 @@ let run(spec: CommitmentSpec) : (Transaction * _) =
                     Transactions.signCore(
                         tx,
                         local.PaymentPrivKey.RawKey(),
-                        false
+                        false,
+                        channelType.CommitmentFormat.HtlcSigHash
                     )
 
                 let remoteSig, _ =
                     Transactions.signCore(
                         tx,
                         remote.PaymentPrivKey.RawKey(),
-                        false
+                        false,
+                        channelType.CommitmentFormat.HtlcSigHash
                     )
 
                 match tx.Finalize(localSig, remoteSig) with
@@ -631,7 +654,8 @@ let tests =
                         CommitmentSpec.IncomingHTLCs = incomingHtlcMap
                         CommitmentSpec.OutgoingHTLCs = outgoingHtlcMap
                         FeeRatePerKw =
-                            (454999UL / Constants.HTLC_SUCCESS_WEIGHT)
+                            (454999UL
+                             / channelType.CommitmentFormat.HtlcSuccessWeight)
                             |> uint32
                             |> FeeRatePerKw
                         ToLocal = 6988000000L |> LNMoney.MilliSatoshis
@@ -648,7 +672,8 @@ let tests =
                 let spec =
                     { specBase with
                         FeeRatePerKw =
-                            (454999UL / Constants.HTLC_SUCCESS_WEIGHT)
+                            (454999UL
+                             / channelType.CommitmentFormat.HtlcSuccessWeight)
                             |> ((+) 1UL)
                             |> uint32
                             |> FeeRatePerKw
@@ -664,7 +689,8 @@ let tests =
                 let spec =
                     { specBase with
                         FeeRatePerKw =
-                            (1454999UL / Constants.HTLC_SUCCESS_WEIGHT)
+                            (1454999UL
+                             / channelType.CommitmentFormat.HtlcSuccessWeight)
                             |> uint32
                             |> FeeRatePerKw
                     }
@@ -679,7 +705,8 @@ let tests =
                 let spec =
                     { specBase with
                         FeeRatePerKw =
-                            (1454999UL / Constants.HTLC_SUCCESS_WEIGHT)
+                            (1454999UL
+                             / channelType.CommitmentFormat.HtlcSuccessWeight)
                             |> ((+) 1UL)
                             |> uint32
                             |> FeeRatePerKw
@@ -695,7 +722,8 @@ let tests =
                 let spec =
                     { specBase with
                         FeeRatePerKw =
-                            (1454999UL / Constants.HTLC_TIMEOUT_WEIGHT)
+                            (1454999UL
+                             / channelType.CommitmentFormat.HtlcTimeoutWeight)
                             |> uint32
                             |> FeeRatePerKw
                     }
@@ -710,7 +738,8 @@ let tests =
                 let spec =
                     { specBase with
                         FeeRatePerKw =
-                            (1454999UL / Constants.HTLC_TIMEOUT_WEIGHT)
+                            (1454999UL
+                             / channelType.CommitmentFormat.HtlcTimeoutWeight)
                             |> ((+) 1UL)
                             |> uint32
                             |> FeeRatePerKw
@@ -726,7 +755,8 @@ let tests =
                 let spec =
                     { specBase with
                         FeeRatePerKw =
-                            (2454999UL / Constants.HTLC_TIMEOUT_WEIGHT)
+                            (2454999UL
+                             / channelType.CommitmentFormat.HtlcTimeoutWeight)
                             |> uint32
                             |> FeeRatePerKw
                     }
@@ -736,7 +766,8 @@ let tests =
             testCase
                 "commitment tx with three outputs untrimmed (minimum feerate)"
             <| fun _ ->
-                let feeRate = 2454999UL / Constants.HTLC_TIMEOUT_WEIGHT
+                let feeRate =
+                    2454999UL / channelType.CommitmentFormat.HtlcTimeoutWeight
 
                 let spec =
                     {
@@ -753,7 +784,8 @@ let tests =
             testCase
                 "commitment tx with three outputs untrimmed (maximum feerate)"
             <| fun _ ->
-                let feeRate = 3454999UL / Constants.HTLC_SUCCESS_WEIGHT
+                let feeRate =
+                    3454999UL / channelType.CommitmentFormat.HtlcSuccessWeight
 
                 let spec =
                     {
@@ -770,7 +802,8 @@ let tests =
             testCase
                 "commitment tx with two outputs untrimmed (minimum feerate)"
             <| fun _ ->
-                let feeRate = 3454999UL / Constants.HTLC_SUCCESS_WEIGHT
+                let feeRate =
+                    3454999UL / channelType.CommitmentFormat.HtlcSuccessWeight
 
                 let spec =
                     {

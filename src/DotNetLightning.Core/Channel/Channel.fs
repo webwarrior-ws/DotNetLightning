@@ -5,6 +5,7 @@ open DotNetLightning.Utils.NBitcoinExtensions
 open DotNetLightning.Chain
 open DotNetLightning.Crypto
 open DotNetLightning.Transactions
+open DotNetLightning.Transactions.Transactions
 open DotNetLightning.Serialization
 open DotNetLightning.Serialization.Msgs
 open NBitcoin
@@ -142,6 +143,7 @@ and ChannelWaitingForFundingCreated =
                     msg.FundingTxId
                     firstPerCommitmentPoint
                     this.RemoteFirstPerCommitmentPoint
+                    channelType.CommitmentFormat
                     this.Network
 
             assert (localCommitTx.Value.IsReadyToSign())
@@ -315,6 +317,7 @@ and ChannelWaitingForFundingTx =
                     (commitmentSeed.DerivePerCommitmentPoint
                         CommitmentNumber.FirstCommitment)
                     this.RemoteFirstPerCommitmentPoint
+                    channelType.CommitmentFormat
                     this.Network
 
             let localSigOfRemoteCommit, _ =
@@ -864,6 +867,7 @@ and Channel =
                         reduced
                         this.SavedChannelState.StaticChannelConfig
                         add
+                        this.SavedChannelState.StaticChannelConfig.Type.CommitmentFormat
 
                 let channel =
                     { this with
@@ -902,6 +906,7 @@ and Channel =
                     reduced
                     this.SavedChannelState.StaticChannelConfig
                     msg
+                    this.SavedChannelState.StaticChannelConfig.Type.CommitmentFormat
 
             return
                 { this with
@@ -1615,7 +1620,10 @@ and Channel =
 
         let fees =
             if savedChannelState.StaticChannelConfig.IsFunder then
-                Transactions.commitTxFee remoteParams.DustLimitSatoshis reduced
+                Transactions.commitTxFee
+                    remoteParams.DustLimitSatoshis
+                    reduced
+                    savedChannelState.StaticChannelConfig.Type.CommitmentFormat
                 |> LNMoney.FromMoney
             else
                 LNMoney.Zero
@@ -1651,6 +1659,9 @@ and Channel =
                     )
                     |> expectTransactionError
 
+                let commitmentFormat =
+                    this.SavedChannelState.StaticChannelConfig.Type.CommitmentFormat
+
                 let! (remoteCommitTx, htlcTimeoutTxs, htlcSuccessTxs) =
                     Commitments.Helpers.makeRemoteTxs
                         savedChannelState.StaticChannelConfig
@@ -1658,6 +1669,7 @@ and Channel =
                         (channelPrivKeys.ToChannelPubKeys())
                         (remoteNextPerCommitmentPoint)
                         (spec)
+                        commitmentFormat
                     |> expectTransactionErrors
 
                 let signature, _ =
@@ -1672,9 +1684,11 @@ and Channel =
                     sortedHTLCTXs
                     |> List.map(
                         (fun htlc ->
-                            channelPrivKeys.SignHtlcTx
-                                htlc.Value
+                            signHtlcTx
+                                htlc
+                                channelPrivKeys
                                 remoteNextPerCommitmentPoint
+                                commitmentFormat
                         )
                         >> fst
                         >> (fun txSig -> txSig.Signature)
@@ -1756,6 +1770,9 @@ and Channel =
                     )
                     |> expectTransactionError
 
+                let commitmentFormat =
+                    this.SavedChannelState.StaticChannelConfig.Type.CommitmentFormat
+
                 let localPerCommitmentPoint =
                     commitmentSeed.DerivePerCommitmentPoint nextI
 
@@ -1766,6 +1783,7 @@ and Channel =
                         (channelPrivKeys.ToChannelPubKeys())
                         localPerCommitmentPoint
                         spec
+                        commitmentFormat
                     |> expectTransactionErrors
 
                 let signature, signedCommitTx =
@@ -1808,9 +1826,11 @@ and Channel =
                     let localHtlcSigsAndHTLCTxs =
                         sortedHTLCTXs
                         |> List.map(fun htlc ->
-                            channelPrivKeys.SignHtlcTx
-                                htlc.Value
+                            signHtlcTx
+                                htlc
+                                channelPrivKeys
                                 localPerCommitmentPoint
+                                commitmentFormat
                         )
 
                     localHtlcSigsAndHTLCTxs |> List.map(fst),
@@ -1829,7 +1849,10 @@ and Channel =
                         remoteECDSASig: LNECDSASignature
                     ) : Result<_, _> =
                     let remoteS =
-                        TransactionSignature(remoteECDSASig.Value, SigHash.All)
+                        TransactionSignature(
+                            remoteECDSASig.Value,
+                            commitmentFormat.HtlcSigHash
+                        )
 
                     match htlc with
                     | :? HTLCTimeoutTx ->

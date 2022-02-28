@@ -122,11 +122,13 @@ type Commitments =
         (isLocalFunder: bool)
         (remoteParams: RemoteParams)
         (remoteCommit: RemoteCommit)
+        (commitmentFormat: CommitmentFormat)
         : Amounts =
         let commitFee =
             Transactions.commitTxFee
                 remoteParams.DustLimitSatoshis
                 remoteCommit.Spec
+                commitmentFormat
 
         let (toLocalAmount, toRemoteAmount) =
             if isLocalFunder then
@@ -147,11 +149,13 @@ type Commitments =
         (isLocalFunder: bool)
         (localParams: LocalParams)
         (localCommit: LocalCommit)
+        (commitmentFormat: CommitmentFormat)
         : Amounts =
         let commitFee =
             Transactions.commitTxFee
                 localParams.DustLimitSatoshis
                 localCommit.Spec
+                commitmentFormat
 
         let (toLocalAmount, toRemoteAmount) =
             if isLocalFunder then

@@ -2188,9 +2188,10 @@ module SerializationTest =
                         |> Map.add "        001000000000000000000000" true
                         // support_large_channel_option(mandatory)
                         |> Map.add "        000001000000000000000000" true
+                        // support option_anchors_zero_fee_htlc_tx (optional)
+                        |> Map.add "        010000000000000000000000" true
                         // those are useful for nonreg testing of the areSupported method (which needs to be updated with every new supported mandatory bit)
                         |> Map.add "        000100000000000000000000" false
-                        |> Map.add "        010000000000000000000000" false
                         |> Map.add "    0001000000000000000000000000" false
                         |> Map.add "    0100000000000000000000000000" false
                         |> Map.add "00010000000000000000000000000000" false

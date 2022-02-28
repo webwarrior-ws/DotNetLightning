@@ -88,6 +88,8 @@ let tests =
         [
             testCase "should create valid signature"
             <| fun _ ->
+                let channelType = ChannelType.Normal
+
                 let fundingTxId = [| for _ in 0..31 -> 1uy |] |> uint256 |> TxId
                 let fundingAmount = Money.Satoshis 10000000L
 
@@ -150,7 +152,10 @@ let tests =
                          <| remotePubKeys.PaymentBasepoint.RawPubKey()) // FIXME: basepoint being used as pubkey here?
                         (HtlcPubKey <| localPubKeys.HtlcBasepoint.RawPubKey())
                         (HtlcPubKey <| remotePubKeys.HtlcBasepoint.RawPubKey())
+                        localPubKeys.FundingPubKey
+                        remotePubKeys.FundingPubKey
                         specBase
+                        channelType.CommitmentFormat
                         n
 
                 let _remoteSigForLocalCommit, commitTx2 =
@@ -185,7 +190,10 @@ let tests =
                          <| localPubKeys.PaymentBasepoint.RawPubKey()) // FIXME: basepoint being used as pubkey here?
                         (HtlcPubKey <| remotePubKeys.HtlcBasepoint.RawPubKey())
                         (HtlcPubKey <| localPubKeys.HtlcBasepoint.RawPubKey())
+                        remotePubKeys.FundingPubKey
+                        localPubKeys.FundingPubKey
                         specBase
+                        channelType.CommitmentFormat
                         n
 
                 let _remoteSigForRemoteCommit, remoteCommitTx2 =

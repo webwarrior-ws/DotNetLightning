@@ -141,6 +141,7 @@ module internal ChannelHelpers =
         (fundingTxId: TxId)
         (localPerCommitmentPoint: PerCommitmentPoint)
         (remotePerCommitmentPoint: PerCommitmentPoint)
+        (commitmentFormat: CommitmentFormat)
         (network: Network)
         : Result<CommitmentSpec * CommitTx * CommitmentSpec * CommitTx, ChannelError> =
         let toLocal =
@@ -170,6 +171,7 @@ module internal ChannelHelpers =
                 Transactions.commitTxFee
                     remoteParams.DustLimitSatoshis
                     remoteSpec
+                    commitmentFormat
 
             let missing =
                 toRemote.ToMoney() - localParams.ChannelReserveSatoshis - fees
@@ -218,7 +220,10 @@ module internal ChannelHelpers =
                     remotePubKeysForLocalCommitment.PaymentPubKey
                     localPubKeysForLocalCommitment.HtlcPubKey
                     remotePubKeysForLocalCommitment.HtlcPubKey
+                    localChannelKeys.FundingPubKey
+                    remoteChannelPubKeys.FundingPubKey
                     localSpec
+                    commitmentFormat
                     network
 
             let localPubKeysForRemoteCommitment =
@@ -247,7 +252,10 @@ module internal ChannelHelpers =
                     localPubKeysForRemoteCommitment.PaymentPubKey
                     remotePubKeysForRemoteCommitment.HtlcPubKey
                     localPubKeysForRemoteCommitment.HtlcPubKey
+                    remoteChannelPubKeys.FundingPubKey
+                    localChannelKeys.FundingPubKey
                     remoteSpec
+                    commitmentFormat
                     network
 
             (localSpec, localCommitTx, remoteSpec, remoteCommitTx) |> Ok
@@ -390,6 +398,7 @@ module internal Validation =
         currentSpec
         (staticChannelConfig: StaticChannelConfig)
         (add: UpdateAddHTLCMsg)
+        commitmentFormat
         =
         Validation.ofResult(
             UpdateAddHTLCValidationWithContext.checkLessThanHTLCValueInFlightLimit
@@ -403,6 +412,7 @@ module internal Validation =
         *^> UpdateAddHTLCValidationWithContext.checkWeHaveSufficientFunds
                 staticChannelConfig
                 currentSpec
+                commitmentFormat
         |> Result.mapError(
             InvalidUpdateAddHTLCError.Create add >> InvalidUpdateAddHTLC
         )
@@ -437,6 +447,7 @@ module internal Validation =
         currentSpec
         (staticChannelConfig: StaticChannelConfig)
         (add: UpdateAddHTLCMsg)
+        commitmentFormat
         =
         Validation.ofResult(
             UpdateAddHTLCValidationWithContext.checkLessThanHTLCValueInFlightLimit
@@ -450,6 +461,7 @@ module internal Validation =
         *^> UpdateAddHTLCValidationWithContext.checkWeHaveSufficientFunds
                 staticChannelConfig
                 currentSpec
+                commitmentFormat
         |> Result.mapError(
             InvalidUpdateAddHTLCError.Create add >> InvalidUpdateAddHTLC
         )

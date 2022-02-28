@@ -120,8 +120,8 @@ module KeyExtensions =
             : PaymentPrivKey =
             PaymentPrivKey
             <| match channelType, isRemoteKey with
-               | ChannelType.StaticRemoteKey, true ->
-                   paymentBasepointSecret.RawKey()
+               | ChannelType.StaticRemoteKey, true
+               | ChannelType.Anchor, true -> paymentBasepointSecret.RawKey()
                | _ -> this.DerivePrivKey(paymentBasepointSecret.RawKey())
 
         member this.DerivePaymentPubKey
@@ -131,8 +131,8 @@ module KeyExtensions =
             : PaymentPubKey =
             PaymentPubKey
             <| match channelType, isRemoteKey with
-               | ChannelType.StaticRemoteKey, true ->
-                   paymentBasepoint.RawPubKey()
+               | ChannelType.StaticRemoteKey, true
+               | ChannelType.Anchor, true -> paymentBasepoint.RawPubKey()
                | _ -> this.DerivePubKey(paymentBasepoint.RawPubKey())
 
 

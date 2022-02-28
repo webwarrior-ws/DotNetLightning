@@ -122,8 +122,11 @@ type RemoteParams =
         }
 
     member this.ObtainChannelType(localParams: LocalParams) =
-        if this.Features.HasFeature Feature.OptionStaticRemoteKey
-           && localParams.Features.HasFeature Feature.OptionStaticRemoteKey then
+        if this.Features.HasFeature Feature.OptionAnchorZeroFeeHtlcTx
+           && localParams.Features.HasFeature Feature.OptionAnchorZeroFeeHtlcTx then
+            ChannelType.Anchor
+        elif this.Features.HasFeature Feature.OptionStaticRemoteKey
+             && localParams.Features.HasFeature Feature.OptionStaticRemoteKey then
             ChannelType.StaticRemoteKey
         else
             ChannelType.Normal

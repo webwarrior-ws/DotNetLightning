@@ -66,3 +66,12 @@ module ChannelConstants =
 
     [<Literal>]
     let HTLC_TIMEOUT_TX_WEIGHT = 663UL
+
+    (*
+        According to BIP 137: "Signatures are either 73, 72, or 71 bytes long,
+        with probabilities approximately 25%, 50% and 25% respectively, although
+        sizes even smaller than that are possible with exponentially decreasing probability"
+        Reference: https://github.com/bitcoin/bips/blob/master/bip-0137.mediawiki#background-on-ecdsa-signatures
+    *)
+    [<Literal>]
+    let MaxSignatureSize = 73

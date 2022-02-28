@@ -722,7 +722,66 @@ module Primitives =
                 ChannelFlags.AnnounceChannelMask
             else
                 0uy
+    (*
+        https://github.com/lightning/bolts/blob/master/03-transactions.md#fee-calculation
+        https://github.com/lightning/bolts/blob/master/03-transactions.md#to_local_anchor-and-to_remote_anchor-output-option_anchors
+    *)
+    type CommitmentFormat =
+        | DefaultCommitmentFormat
+        | AnchorCommitmentFormat
+
+        member this.CommitWeight =
+            match this with
+            | DefaultCommitmentFormat -> 724UL
+            | AnchorCommitmentFormat -> 1124UL
+
+        member this.HtlcOutputWeight =
+            match this with
+            | DefaultCommitmentFormat -> 172UL
+            | AnchorCommitmentFormat -> 172UL
+
+        member this.HtlcTimeoutWeight =
+            match this with
+            | DefaultCommitmentFormat -> 663UL
+            | AnchorCommitmentFormat -> 666UL
+
+        member this.HtlcSuccessWeight =
+            match this with
+            | DefaultCommitmentFormat -> 703UL
+            | AnchorCommitmentFormat -> 706UL
+
+        member this.AnchorOutputCost =
+            match this with
+            | DefaultCommitmentFormat -> 0UL
+            | AnchorCommitmentFormat -> 330UL
+
+        member this.HtlcTxInputSequence =
+            match this with
+            | DefaultCommitmentFormat -> 0
+            | AnchorCommitmentFormat -> 1
+
+        member this.HtlcCsvLock =
+            match this with
+            | DefaultCommitmentFormat -> false
+            | AnchorCommitmentFormat -> true
+
+        member this.HtlcSecondStageFeeRate(feeRate: FeeRatePerKw) =
+            match this with
+            | DefaultCommitmentFormat -> feeRate
+            | AnchorCommitmentFormat -> FeeRatePerKw 0u
+
+        member this.HtlcSigHash =
+            match this with
+            | DefaultCommitmentFormat -> SigHash.All
+            | AnchorCommitmentFormat -> SigHash.Single ||| SigHash.AnyoneCanPay
 
     type ChannelType =
         | Normal
         | StaticRemoteKey
+        | Anchor
+
+        member this.CommitmentFormat =
+            match this with
+            | Anchor -> CommitmentFormat.AnchorCommitmentFormat
+            | Normal
+            | StaticRemoteKey -> CommitmentFormat.DefaultCommitmentFormat

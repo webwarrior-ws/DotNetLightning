@@ -44,11 +44,31 @@ module Scripts =
         opList.Add(!>OpcodeType.OP_CHECKSIG)
         Script(opList)
 
+    let toRemoteDelayed(remotePaymentPubkey: PaymentPubKey) : Script =
+        let opList = ResizeArray<Op>()
+        opList.Add(Op.GetPushOp(remotePaymentPubkey.ToBytes()))
+        opList.Add(!>OpcodeType.OP_CHECKSIGVERIFY)
+        opList.Add(!>OpcodeType.OP_1)
+        opList.Add(!>OpcodeType.OP_CHECKSEQUENCEVERIFY)
+        Script opList
+
+    let anchor(fundingPubkey: FundingPubKey) : Script =
+        let opList = ResizeArray<Op>()
+        opList.Add(Op.GetPushOp(fundingPubkey.ToBytes()))
+        opList.Add(!>OpcodeType.OP_CHECKSIG)
+        opList.Add(!>OpcodeType.OP_IFDUP)
+        opList.Add(!>OpcodeType.OP_NOTIF)
+        opList.Add(!>OpcodeType.OP_16)
+        opList.Add(!>OpcodeType.OP_CHECKSEQUENCEVERIFY)
+        opList.Add(!>OpcodeType.OP_ENDIF)
+        Script opList
+
     let htlcOffered
         (localHtlcPubKey: HtlcPubKey)
         (remoteHtlcPubKey: HtlcPubKey)
         (revocationPubKey: RevocationPubKey)
         (ph: PaymentHash)
+        (addCsvDelay: bool)
         : Script =
         let revocationPubKeyHash =
             let p = revocationPubKey.ToBytes()
@@ -81,6 +101,12 @@ module Scripts =
         opList.Add(!>OpcodeType.OP_EQUALVERIFY)
         opList.Add(!>OpcodeType.OP_CHECKSIG)
         opList.Add(!>OpcodeType.OP_ENDIF)
+
+        if addCsvDelay then
+            opList.Add(!>OpcodeType.OP_1)
+            opList.Add(!>OpcodeType.OP_CHECKSEQUENCEVERIFY)
+            opList.Add(!>OpcodeType.OP_DROP)
+
         opList.Add(!>OpcodeType.OP_ENDIF)
         Script(opList)
 
@@ -90,6 +116,7 @@ module Scripts =
         (revocationPubKey: RevocationPubKey)
         (ph: PaymentHash)
         (lockTime: uint32)
+        (addCsvDelay: bool)
         : Script =
         let revocationPubKeyHash =
             let p = revocationPubKey.ToBytes()
@@ -126,5 +153,11 @@ module Scripts =
         opList.Add(!>OpcodeType.OP_DROP)
         opList.Add(!>OpcodeType.OP_CHECKSIG)
         opList.Add(!>OpcodeType.OP_ENDIF)
+
+        if addCsvDelay then
+            opList.Add(!>OpcodeType.OP_1)
+            opList.Add(!>OpcodeType.OP_CHECKSEQUENCEVERIFY)
+            opList.Add(!>OpcodeType.OP_DROP)
+
         opList.Add(!>OpcodeType.OP_ENDIF)
         Script(opList)

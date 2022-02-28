@@ -895,12 +895,14 @@ module internal UpdateAddHTLCValidationWithContext =
     let checkWeHaveSufficientFunds
         (staticChannelConfig: StaticChannelConfig)
         currentSpec
+        commitmentFormat
         =
         let fees =
             if staticChannelConfig.IsFunder then
                 Transactions.commitTxFee
                     staticChannelConfig.RemoteParams.DustLimitSatoshis
                     currentSpec
+                    commitmentFormat
             else
                 Money.Zero
 

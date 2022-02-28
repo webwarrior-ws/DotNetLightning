@@ -107,6 +107,12 @@ type Feature =
             Mandatory = 18
         }
 
+    static member OptionAnchorZeroFeeHtlcTx =
+        {
+            RfcName = "option_anchors_zero_fee_htlc_tx"
+            Mandatory = 22
+        }
+
 module internal Feature =
     let hex = HexEncoder()
 
@@ -118,6 +124,9 @@ module internal Feature =
             ([ Feature.ChannelRangeQueries ])
         |> Map.add (Feature.BasicMultiPartPayment) ([ Feature.PaymentSecret ])
         |> Map.add (Feature.PaymentSecret) ([ Feature.VariableLengthOnion ])
+        |> Map.add
+            (Feature.OptionAnchorZeroFeeHtlcTx)
+            ([ Feature.OptionStaticRemoteKey ])
 
     let isFeatureOn (features: BitArray) (bit: int) =
         (features.Length > bit) && features.Reverse().[bit]
@@ -177,6 +186,7 @@ module internal Feature =
             // TODO: support this feature
             // Feature.BasicMultiPartPayment
             yield Feature.OptionSupportLargeChannel
+            yield Feature.OptionAnchorZeroFeeHtlcTx
         }
         |> Seq.map(fun f -> f.Mandatory)
         |> Set
@@ -209,6 +219,7 @@ module internal Feature =
             yield Feature.PaymentSecret
             yield Feature.BasicMultiPartPayment
             yield Feature.OptionSupportLargeChannel
+            yield Feature.OptionAnchorZeroFeeHtlcTx
         }
         |> Set
 

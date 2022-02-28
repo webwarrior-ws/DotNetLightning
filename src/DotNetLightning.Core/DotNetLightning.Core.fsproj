@@ -73,10 +73,11 @@
     <Compile Include="Peer\PeerChannelEncryptor.fs" />
     <Compile Include="Peer\PeerTypes.fs" />
     <Compile Include="Peer\Peer.fs" />
+    <Compile Include="Channel\ChannelConstants.fs" />
     <Compile Include="Channel\CommitmentToLocalExtension.fs" />
+    <Compile Include="Channel\CommitmentToDelayedRemoteExtension.fs" />
     <Compile Include="Channel\Interfaces.fs" />
     <Compile Include="Channel\HTLCChannelType.fs" />
-    <Compile Include="Channel\ChannelConstants.fs" />
     <Compile Include="Channel\ChannelOperations.fs" />
     <Compile Include="Channel\Commitments.fs" />
     <Compile Include="Channel\ChannelTypes.fs" />

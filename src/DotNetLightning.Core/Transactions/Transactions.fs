@@ -325,15 +325,6 @@ module Transactions =
         let COMMITMENT_TX_BASE_WEIGHT = 724UL
 
         [<Literal>]
-        let COMMIT_WEIGHT = COMMITMENT_TX_BASE_WEIGHT
-
-        [<Literal>]
-        let HTLC_TIMEOUT_WEIGHT = 663UL
-
-        [<Literal>]
-        let HTLC_SUCCESS_WEIGHT = 703UL
-
-        [<Literal>]
         let CLAIM_P2WPKH_OUTPUT_WEIGHT = 437UL
 
         [<Literal>]
@@ -384,9 +375,12 @@ module Transactions =
     let private trimOfferedHTLCs
         (dustLimit: Money)
         (spec: CommitmentSpec)
+        (commitmentFormat: CommitmentFormat)
         : list<UpdateAddHTLCMsg> =
         let htlcTimeoutFee =
-            spec.FeeRatePerKw.CalculateFeeFromWeight(HTLC_TIMEOUT_WEIGHT)
+            commitmentFormat
+                .HtlcSecondStageFeeRate(spec.FeeRatePerKw)
+                .CalculateFeeFromWeight(commitmentFormat.HtlcTimeoutWeight)
 
         spec.OutgoingHTLCs
         |> Map.toList
@@ -398,9 +392,12 @@ module Transactions =
     let private trimReceivedHTLCs
         (dustLimit: Money)
         (spec: CommitmentSpec)
+        (commitmentFormat: CommitmentFormat)
         : list<UpdateAddHTLCMsg> =
         let htlcSuccessFee =
-            spec.FeeRatePerKw.CalculateFeeFromWeight(HTLC_SUCCESS_WEIGHT)
+            commitmentFormat
+                .HtlcSecondStageFeeRate(spec.FeeRatePerKw)
+                .CalculateFeeFromWeight commitmentFormat.HtlcSuccessWeight
 
         spec.IncomingHTLCs
         |> Map.toList
@@ -409,17 +406,28 @@ module Transactions =
             (v.Amount.ToMoney()) >= (dustLimit + htlcSuccessFee)
         )
 
-    let internal commitTxFee (dustLimit: Money) (spec: CommitmentSpec) : Money =
-        let trimmedOfferedHTLCs = trimOfferedHTLCs (dustLimit) (spec)
-        let trimmedReceivedHTLCs = trimReceivedHTLCs dustLimit spec
+    let internal commitTxFee
+        (dustLimit: Money)
+        (spec: CommitmentSpec)
+        (commitmentFormat: CommitmentFormat)
+        : Money =
+        let trimmedOfferedHTLCs =
+            trimOfferedHTLCs (dustLimit) (spec) commitmentFormat
+
+        let trimmedReceivedHTLCs =
+            trimReceivedHTLCs dustLimit spec commitmentFormat
+
+        // Funder always pays for two (one local and one remote) anchor outputs
+        let anchorsCost =
+            2UL * commitmentFormat.AnchorOutputCost |> Money.Satoshis
 
         let weight =
-            COMMIT_WEIGHT
-            + 172UL
+            commitmentFormat.CommitWeight
+            + commitmentFormat.HtlcOutputWeight
               * (uint64 trimmedOfferedHTLCs.Length
                  + uint64 trimmedReceivedHTLCs.Length)
 
-        spec.FeeRatePerKw.CalculateFeeFromWeight(weight)
+        spec.FeeRatePerKw.CalculateFeeFromWeight(weight) + anchorsCost
 
     let getCommitTxNumber
         (commitTx: Transaction)
@@ -465,10 +473,13 @@ module Transactions =
         (remotePaymentPubkey: PaymentPubKey)
         (localHTLCPubKey: HtlcPubKey)
         (remoteHTLCPubkey: HtlcPubKey)
+        (localFundingPubkey: FundingPubKey)
+        (remoteFundingPubkey: FundingPubKey)
         (spec: CommitmentSpec)
+        (commitmentFormat: CommitmentFormat)
         (network: Network)
         =
-        let commitFee = commitTxFee localDustLimit spec
+        let commitFee = commitTxFee localDustLimit spec commitmentFormat
 
         let (toLocalAmount, toRemoteAmount) =
             if localIsFunder then
@@ -496,20 +507,24 @@ module Transactions =
 
         let toRemoteOutputOpt =
             if (toRemoteAmount >= localDustLimit) then
-                Some(
-                    TxOut(
-                        toRemoteAmount,
-                        (remotePaymentPubkey
+                let remoteOutputDestination =
+                    match commitmentFormat with
+                    | DefaultCommitmentFormat ->
+                        remotePaymentPubkey
                             .RawPubKey()
                             .WitHash
-                            .ScriptPubKey)
-                    )
-                )
+                            .ScriptPubKey
+                    | AnchorCommitmentFormat ->
+                        (Scripts.toRemoteDelayed remotePaymentPubkey)
+                            .WitHash
+                            .ScriptPubKey
+
+                TxOut(toRemoteAmount, remoteOutputDestination) |> Some
             else
                 None
 
         let htlcOfferedOutputsWithMetadata =
-            trimOfferedHTLCs (localDustLimit) (spec)
+            trimOfferedHTLCs localDustLimit spec commitmentFormat
             |> List.map(fun htlc ->
                 let redeem =
                     Scripts.htlcOffered
@@ -517,25 +532,77 @@ module Transactions =
                         (remoteHTLCPubkey)
                         localRevocationPubKey
                         (htlc.PaymentHash)
+                        commitmentFormat.HtlcCsvLock
 
                 (TxOut(htlc.Amount.ToMoney(), redeem.WitHash.ScriptPubKey)),
                 Some htlc
             )
 
         let htlcReceivedOutputsWithMetadata =
-            trimReceivedHTLCs (localDustLimit) (spec)
+            trimReceivedHTLCs localDustLimit spec commitmentFormat
             |> List.map(fun htlc ->
                 let redeem =
                     Scripts.htlcReceived
-                        (localHTLCPubKey)
-                        (remoteHTLCPubkey)
-                        (localRevocationPubKey)
-                        (htlc.PaymentHash)
-                        (htlc.CLTVExpiry.Value)
+                        localHTLCPubKey
+                        remoteHTLCPubkey
+                        localRevocationPubKey
+                        htlc.PaymentHash
+                        htlc.CLTVExpiry.Value
+                        commitmentFormat.HtlcCsvLock
 
                 TxOut(htlc.Amount.ToMoney(), redeem.WitHash.ScriptPubKey),
                 Some htlc
             )
+
+        let hasHtlcs =
+            not(
+                htlcOfferedOutputsWithMetadata.IsEmpty
+                && htlcReceivedOutputsWithMetadata.IsEmpty
+            )
+
+        let anchorOutputs =
+            match commitmentFormat with
+            | AnchorCommitmentFormat ->
+                let anchorCostInMoney =
+                    commitmentFormat.AnchorOutputCost |> Money.Satoshis
+
+                let localAnchorOutput =
+                    if toLocalAmount >= localDustLimit || hasHtlcs then
+                        TxOut(
+                            anchorCostInMoney,
+                            Scripts
+                                .anchor(
+                                    localFundingPubkey
+                                )
+                                .WitHash
+                                .ScriptPubKey
+                        )
+                        |> Some
+                    else
+                        None
+
+                let remoteAnchorOutput =
+                    if toRemoteAmount >= localDustLimit || hasHtlcs then
+                        TxOut(
+                            anchorCostInMoney,
+                            Scripts
+                                .anchor(
+                                    remoteFundingPubkey
+                                )
+                                .WitHash
+                                .ScriptPubKey
+                        )
+                        |> Some
+                    else
+                        None
+
+                [
+                    localAnchorOutput
+                    remoteAnchorOutput
+                ]
+                |> List.choose id
+                |> List.map(fun txOut -> txOut, None)
+            | DefaultCommitmentFormat -> List.empty
 
         let obscuredCommitmentNumber =
             commitmentNumber.Obscure
@@ -566,7 +633,7 @@ module Transactions =
                      |> List.choose id
                      |> List.map(fun x -> x, None))
                     @ (htlcOfferedOutputsWithMetadata)
-                      @ htlcReceivedOutputsWithMetadata
+                      @ htlcReceivedOutputsWithMetadata @ anchorOutputs
 
                 List.fold
                     (fun ((txb, outAmount): TransactionBuilder * Money) (txOut: TxOut) ->
@@ -664,7 +731,7 @@ module Transactions =
     /// 2. ILightningTx updated
     /// Technically speaking, we could just return one of them.
     /// Returning both is just for ergonomic reason. (pretending to be referential transparent)
-    let signCore(tx: ILightningTx, key: Key, enforceLowR) =
+    let signCore(tx: ILightningTx, key: Key, enforceLowR, sigHash) =
         let psbt = tx.Value
         let psbtIn = psbt.Inputs.[tx.WhichInput]
         let coin = ScriptCoin(psbtIn.GetCoin(), psbtIn.WitnessScript)
@@ -681,7 +748,7 @@ module Transactions =
             txIn.Sign(
                 key,
                 coin,
-                SigningOptions(EnforceLowR = enforceLowR, SigHash = SigHash.All)
+                SigningOptions(EnforceLowR = enforceLowR, SigHash = sigHash)
             )
 
         match checkSigAndAdd tx txSig key.PubKey with
@@ -692,8 +759,20 @@ module Transactions =
                 signature
         | Error err -> failwithf "%A" err
 
-    let sign(tx, key) =
-        signCore(tx, key, true)
+    let sign(tx, key, sigHash) =
+        signCore(tx, key, true, sigHash)
+
+    let signHtlcTx
+        (htlc: IHTLCTx)
+        (channelPrivKeys: ChannelPrivKeys)
+        (perCommitmentPoint: PerCommitmentPoint)
+        (commitmentFormat: CommitmentFormat)
+        =
+        let htlcPrivKey =
+            perCommitmentPoint.DeriveHtlcPrivKey
+                channelPrivKeys.HtlcBasepointSecret
+
+        sign(htlc, htlcPrivKey.RawKey(), commitmentFormat.HtlcSigHash)
 
     let makeHTLCTimeoutTx
         (commitTx: Transaction)
@@ -704,17 +783,21 @@ module Transactions =
         (localHTLCPubKey: HtlcPubKey)
         (remoteHTLCPubKey: HtlcPubKey)
         (feeratePerKw: FeeRatePerKw)
+        (commitmentFormat: CommitmentFormat)
         (htlc: UpdateAddHTLCMsg)
         (network: Network)
         =
-        let fee = feeratePerKw.CalculateFeeFromWeight(HTLC_TIMEOUT_WEIGHT)
+        let fee =
+            feeratePerKw.CalculateFeeFromWeight
+                commitmentFormat.HtlcTimeoutWeight
 
         let redeem =
             Scripts.htlcOffered
-                (localHTLCPubKey)
-                (remoteHTLCPubKey)
-                (localRevocationPubKey)
-                (htlc.PaymentHash)
+                localHTLCPubKey
+                remoteHTLCPubKey
+                localRevocationPubKey
+                htlc.PaymentHash
+                commitmentFormat.HtlcCsvLock
 
         let spk = redeem.WitHash.ScriptPubKey
         let spkIndex = findScriptPubKeyIndex commitTx spk
@@ -753,7 +836,7 @@ module Transactions =
                 tx.Version <- 2u
 
                 for i in tx.Inputs do
-                    i.Sequence <- Sequence(0)
+                    i.Sequence <- Sequence(commitmentFormat.HtlcTxInputSequence)
 
                 PSBT
                     .FromTransaction(tx, network)
@@ -773,18 +856,22 @@ module Transactions =
         (localHTLCPubKey: HtlcPubKey)
         (remoteHTLCPubKey: HtlcPubKey)
         (feeratePerKw: FeeRatePerKw)
+        (commitmentFormat: CommitmentFormat)
         (htlc: UpdateAddHTLCMsg)
         (network: Network)
         =
-        let fee = feeratePerKw.CalculateFeeFromWeight(HTLC_SUCCESS_WEIGHT)
+        let fee =
+            feeratePerKw.CalculateFeeFromWeight
+                commitmentFormat.HtlcSuccessWeight
 
         let redeem =
             Scripts.htlcReceived
-                (localHTLCPubKey)
-                (remoteHTLCPubKey)
-                (localRevocationPubKey)
-                (htlc.PaymentHash)
-                (htlc.CLTVExpiry.Value)
+                localHTLCPubKey
+                remoteHTLCPubKey
+                localRevocationPubKey
+                htlc.PaymentHash
+                htlc.CLTVExpiry.Value
+                commitmentFormat.HtlcCsvLock
 
         let spk = redeem.WitHash.ScriptPubKey
         let spkIndex = findScriptPubKeyIndex commitTx spk
@@ -824,7 +911,7 @@ module Transactions =
                 tx.Version <- 2u
 
                 for i in tx.Inputs do
-                    i.Sequence <- Sequence(0)
+                    i.Sequence <- Sequence(commitmentFormat.HtlcTxInputSequence)
 
                 PSBT
                     .FromTransaction(tx, network)
@@ -840,15 +927,16 @@ module Transactions =
         (commitTx: Transaction)
         (localDustLimit: Money)
         (localRevocationPubKey: RevocationPubKey)
-        toLocalDelay
+        (toLocalDelay)
         (toLocalDelayedPaymentPubKey: DelayedPaymentPubKey)
-        localHTLCPubKey
-        remoteHTLCPubKey
+        (localHTLCPubKey)
+        (remoteHTLCPubKey)
         (spec: CommitmentSpec)
+        (commitmentFormat: CommitmentFormat)
         (network: Network)
-        : Result<(list<HTLCTimeoutTx>) * (list<HTLCSuccessTx>), list<TransactionError>> =
+        : Result<(HTLCTimeoutTx list) * (HTLCSuccessTx list), TransactionError list> =
         let htlcTimeoutTxs =
-            (trimOfferedHTLCs localDustLimit spec)
+            trimOfferedHTLCs localDustLimit spec commitmentFormat
             |> List.map(fun htlc ->
                 makeHTLCTimeoutTx
                     commitTx
@@ -858,14 +946,15 @@ module Transactions =
                     toLocalDelayedPaymentPubKey
                     localHTLCPubKey
                     remoteHTLCPubKey
-                    spec.FeeRatePerKw
+                    (commitmentFormat.HtlcSecondStageFeeRate spec.FeeRatePerKw)
+                    commitmentFormat
                     htlc
                     network
             )
             |> List.sequenceResultA
 
         let htlcSuccessTxs =
-            (trimReceivedHTLCs localDustLimit spec)
+            trimReceivedHTLCs localDustLimit spec commitmentFormat
             |> List.map(fun htlc ->
                 makeHTLCSuccessTx
                     commitTx
@@ -875,7 +964,8 @@ module Transactions =
                     toLocalDelayedPaymentPubKey
                     localHTLCPubKey
                     remoteHTLCPubKey
-                    spec.FeeRatePerKw
+                    (commitmentFormat.HtlcSecondStageFeeRate spec.FeeRatePerKw)
+                    commitmentFormat
                     htlc
                     network
             )
@@ -892,16 +982,18 @@ module Transactions =
         (localFinalScriptPubKey: Script)
         (htlc: UpdateAddHTLCMsg)
         (feeRatePerKw: FeeRatePerKw)
+        (commitmentFormat: CommitmentFormat)
         (network: Network)
         : Result<ClaimHTLCSuccessTx, TransactionError> =
         let fee = feeRatePerKw.CalculateFeeFromWeight(CLAIM_HTLC_SUCCESS_WEIGHT)
 
         let redeem =
             Scripts.htlcOffered
-                (remoteHTLCPubKey)
-                (localHTLCPubKey)
-                (remoteRevocationPubKey)
-                (htlc.PaymentHash)
+                remoteHTLCPubKey
+                localHTLCPubKey
+                remoteRevocationPubKey
+                htlc.PaymentHash
+                commitmentFormat.HtlcCsvLock
 
         let spk = redeem.WitHash.ScriptPubKey
         let spkIndex = findScriptPubKeyIndex commitTx spk
@@ -910,6 +1002,11 @@ module Transactions =
         if (amount < localDustLimit) then
             AmountBelowDustLimit amount |> Error
         else
+            let sequence =
+                match commitmentFormat with
+                | DefaultCommitmentFormat -> UINT32_MAX // RBF disabled
+                | AnchorCommitmentFormat -> 1u // txs have a 1-block delay to allow CPFP carve-out on anchors
+
             let psbt =
                 let txb = createDeterministicTransactionBuilder network
 
@@ -931,6 +1028,7 @@ module Transactions =
 
                 tx.Version <- 2u
                 tx.Inputs.[0].Sequence <- !>UINT32_MAX
+                tx.Inputs.[0].Sequence <- !>sequence
                 PSBT.FromTransaction(tx, network).AddCoins(coin)
 
             psbt |> ClaimHTLCSuccessTx |> Ok
@@ -944,6 +1042,7 @@ module Transactions =
         (localFinalScriptPubKey: Script)
         (htlc: UpdateAddHTLCMsg)
         (feeRatePerKw: FeeRatePerKw)
+        (commitmentFormat: CommitmentFormat)
         (network: Network)
         : Result<_, _> =
         let fee = feeRatePerKw.CalculateFeeFromWeight(CLAIM_HTLC_TIMEOUT_WEIGHT)
@@ -955,6 +1054,7 @@ module Transactions =
                 remoteRevocationPubKey
                 htlc.PaymentHash
                 htlc.CLTVExpiry.Value
+                commitmentFormat.HtlcCsvLock
 
         let spk = redeem.WitHash.ScriptPubKey
         let spkIndex = findScriptPubKeyIndex commitTx spk
@@ -981,7 +1081,10 @@ module Transactions =
                         .BuildTransaction(false)
 
                 tx.Version <- 2u
-                tx.Inputs.[0].Sequence <- !>UINT32_MAX
+
+                tx.Inputs.[0].Sequence <- !>(commitmentFormat.HtlcTxInputSequence
+                                             |> uint32)
+
                 PSBT.FromTransaction(tx, network).AddCoins(coin)
 
             psbt |> ClaimHTLCTimeoutTx |> Ok

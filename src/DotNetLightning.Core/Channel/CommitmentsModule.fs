@@ -36,6 +36,7 @@ module internal Commitments =
             (localChannelPubKeys: ChannelPubKeys)
             (remotePerCommitmentPoint: PerCommitmentPoint)
             (spec: CommitmentSpec)
+            (commitmentFormat: CommitmentFormat)
             =
             let localCommitmentPubKeys =
                 remotePerCommitmentPoint.DeriveCommitmentPubKeys
@@ -63,7 +64,10 @@ module internal Commitments =
                     localCommitmentPubKeys.PaymentPubKey
                     remoteCommitmentPubKeys.HtlcPubKey
                     localCommitmentPubKeys.HtlcPubKey
+                    staticChannelConfig.RemoteChannelPubKeys.FundingPubKey
+                    localChannelPubKeys.FundingPubKey
                     spec
+                    commitmentFormat
                     staticChannelConfig.Network
 
             result {
@@ -77,6 +81,7 @@ module internal Commitments =
                         remoteCommitmentPubKeys.HtlcPubKey
                         localCommitmentPubKeys.HtlcPubKey
                         spec
+                        commitmentFormat
                         staticChannelConfig.Network
 
                 return (commitTx, htlcTimeoutTxs, htlcSuccessTxs)
@@ -88,7 +93,8 @@ module internal Commitments =
             (localChannelPubKeys: ChannelPubKeys)
             (localPerCommitmentPoint: PerCommitmentPoint)
             (spec: CommitmentSpec)
-            : Result<(CommitTx * list<HTLCTimeoutTx> * list<HTLCSuccessTx>), _> =
+            (commitmentFormat: CommitmentFormat)
+            : Result<(CommitTx * HTLCTimeoutTx list * HTLCSuccessTx list), _> =
             let localCommitmentPubKeys =
                 localPerCommitmentPoint.DeriveCommitmentPubKeys
                     localChannelPubKeys
@@ -115,7 +121,10 @@ module internal Commitments =
                     remoteCommitmentPubKeys.PaymentPubKey
                     localCommitmentPubKeys.HtlcPubKey
                     remoteCommitmentPubKeys.HtlcPubKey
+                    localChannelPubKeys.FundingPubKey
+                    staticChannelConfig.RemoteChannelPubKeys.FundingPubKey
                     spec
+                    commitmentFormat
                     staticChannelConfig.Network
 
             result {
@@ -129,6 +138,7 @@ module internal Commitments =
                         localCommitmentPubKeys.HtlcPubKey
                         remoteCommitmentPubKeys.HtlcPubKey
                         (spec)
+                        commitmentFormat
                         staticChannelConfig.Network
 
                 return (commitTx, htlcTimeoutTxs, htlcSuccessTxs)
@@ -367,6 +377,7 @@ module internal Commitments =
                     Transactions.commitTxFee
                         (savedChannelState.StaticChannelConfig.RemoteParams.DustLimitSatoshis)
                         reduced
+                        savedChannelState.StaticChannelConfig.Type.CommitmentFormat
 
                 let missing =
                     reduced.ToRemote.ToMoney()
@@ -408,6 +419,7 @@ module internal Commitments =
                     Transactions.commitTxFee
                         (savedChannelState.StaticChannelConfig.RemoteParams.DustLimitSatoshis)
                         reduced
+                        savedChannelState.StaticChannelConfig.Type.CommitmentFormat
 
                 let missing =
                     reduced.ToRemote.ToMoney()

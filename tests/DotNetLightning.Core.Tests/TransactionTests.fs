@@ -176,7 +176,10 @@ let testList =
                         remoteCommitmentPubKeys.PaymentPubKey
                         localCommitmentPubKeys.HtlcPubKey
                         remoteCommitmentPubKeys.HtlcPubKey
+                        localChannelPubKeys.FundingPubKey
+                        remoteChannelPubKeys.FundingPubKey
                         commitmentSpec
+                        channelType.CommitmentFormat
                         Network.RegTest
 
                 let commitmentTx =
@@ -602,7 +605,10 @@ let testList =
                             remoteCommitmentPubKeys.PaymentPubKey
                             localCommitmentPubKeys.HtlcPubKey
                             remoteCommitmentPubKeys.HtlcPubKey
+                            localChannelPubKeys.FundingPubKey
+                            remoteChannelPubKeys.FundingPubKey
                             localCommitmentSpec
+                            channelType.CommitmentFormat
                             Network.RegTest
 
                     unsignedCommitmentTx
@@ -655,7 +661,10 @@ let testList =
                             remoteRemoteCommitmentPubKeys.PaymentPubKey
                             remoteLocalCommitmentPubKeys.HtlcPubKey
                             remoteRemoteCommitmentPubKeys.HtlcPubKey
+                            remoteChannelPubKeys.FundingPubKey
+                            localChannelPubKeys.FundingPubKey
                             remoteCommitmentSpec
+                            channelType.CommitmentFormat
                             Network.RegTest
 
                     unsignedCommitmentTx
@@ -975,7 +984,10 @@ let testList =
                             remoteCommitmentPubKeys.PaymentPubKey
                             localCommitmentPubKeys.HtlcPubKey
                             remoteCommitmentPubKeys.HtlcPubKey
+                            localChannelPubKeys.FundingPubKey
+                            remoteChannelPubKeys.FundingPubKey
                             localCommitmentSpec
+                            channelType.CommitmentFormat
                             Network.RegTest
 
                     unsignedCommitmentTx
@@ -1023,7 +1035,10 @@ let testList =
                             remoteCommitmentPubKeys.PaymentPubKey
                             localCommitmentPubKeys.HtlcPubKey
                             remoteCommitmentPubKeys.HtlcPubKey
+                            localChannelPubKeys.FundingPubKey
+                            remoteChannelPubKeys.FundingPubKey
                             remoteCommitmentSpec
+                            channelType.CommitmentFormat
                             Network.RegTest
 
                     unsignedCommitmentTx

@@ -126,11 +126,19 @@ module ClosingHelpers =
                         true
 
                 let toRemoteScriptPubKey =
-                    localCommitmentPubKeys
-                        .PaymentPubKey
-                        .RawPubKey()
-                        .WitHash
-                        .ScriptPubKey
+                    match staticChannelConfig.Type.CommitmentFormat with
+                    | DefaultCommitmentFormat ->
+                        localCommitmentPubKeys
+                            .PaymentPubKey
+                            .RawPubKey()
+                            .WitHash
+                            .ScriptPubKey
+                    | AnchorCommitmentFormat ->
+                        (Scripts.toRemoteDelayed
+                            localCommitmentPubKeys.PaymentPubKey)
+                            .WitHash
+                            .ScriptPubKey
+
 
                 let toRemoteIndexOpt =
                     Seq.tryFindIndex
@@ -152,9 +160,25 @@ module ClosingHelpers =
                         .AddKeys(localPaymentPrivKey.RawKey())
 
                 return
-                    transactionBuilder.AddCoin(
-                        Coin(commitTx, uint32 toRemoteIndex)
-                    )
+                    match staticChannelConfig.Type.CommitmentFormat with
+                    | DefaultCommitmentFormat ->
+                        transactionBuilder.AddCoin(
+                            Coin(commitTx, uint32 toRemoteIndex)
+                        )
+                    | AnchorCommitmentFormat ->
+                        transactionBuilder.Extensions.Add(
+                            CommitmentToDelayedRemoteExtension()
+                        )
+
+                        transactionBuilder.AddCoin(
+                            ScriptCoin(
+                                commitTx,
+                                uint32 toRemoteIndex,
+                                Scripts.toRemoteDelayed
+                                    localCommitmentPubKeys.PaymentPubKey
+                            ),
+                            CoinOptions(Sequence = (Nullable <| Sequence 1u))
+                        )
             }
 
         let ClaimCommitTxOutputs
@@ -301,6 +325,8 @@ module ClosingHelpers =
             (localChannelPrivKeys: ChannelPrivKeys)
             : Result<TransactionBuilder, OutputClaimError> =
             result {
+                let commitmentFormat = staticChannelConfig.Type.CommitmentFormat
+
                 let localChannelPubKeys =
                     localChannelPrivKeys.ToChannelPubKeys()
 
@@ -339,11 +365,18 @@ module ClosingHelpers =
                     staticChannelConfig.Network.CreateTransactionBuilder()
 
                 let toRemoteScriptPubKey =
-                    localCommitmentPubKeys
-                        .PaymentPubKey
-                        .RawPubKey()
-                        .WitHash
-                        .ScriptPubKey
+                    match commitmentFormat with
+                    | DefaultCommitmentFormat ->
+                        localCommitmentPubKeys
+                            .PaymentPubKey
+                            .RawPubKey()
+                            .WitHash
+                            .ScriptPubKey
+                    | AnchorCommitmentFormat ->
+                        (Scripts.toRemoteDelayed
+                            localCommitmentPubKeys.PaymentPubKey)
+                            .WitHash
+                            .ScriptPubKey
 
                 let toLocalScriptPubKey =
                     Scripts.toLocalDelayed
@@ -374,9 +407,24 @@ module ClosingHelpers =
                     transactionBuilder.AddKeys(localPaymentPrivKey.RawKey())
                     |> ignore<TransactionBuilder>
 
-                    transactionBuilder.AddCoin(
-                        Coin(closingTx, toRemoteIndex |> uint32)
-                    )
+                    match commitmentFormat with
+                    | DefaultCommitmentFormat ->
+                        transactionBuilder.AddCoin(
+                            Coin(closingTx, toRemoteIndex |> uint32)
+                        )
+                    | AnchorCommitmentFormat ->
+                        transactionBuilder.Extensions.Add(
+                            CommitmentToDelayedRemoteExtension()
+                        )
+
+                        let redeem =
+                            Scripts.toRemoteDelayed
+                                localCommitmentPubKeys.PaymentPubKey
+
+                        transactionBuilder.AddCoin(
+                            ScriptCoin(closingTx, uint32 toRemoteIndex, redeem),
+                            CoinOptions(Sequence = (Nullable <| Sequence 1u))
+                        )
                     |> ignore
                 )
 
@@ -461,7 +509,10 @@ module ClosingHelpers =
                     localCommitmentPubKeys.PaymentPubKey
                     remoteCommitmentPubKeys.HtlcPubKey
                     localCommitmentPubKeys.HtlcPubKey
+                    staticChannelConfig.RemoteChannelPubKeys.FundingPubKey
+                    localChannelPubKeys.FundingPubKey
                     remoteCommit.Spec
+                    staticChannelConfig.Type.CommitmentFormat
                     staticChannelConfig.Network
 
             ClaimMainOutput
