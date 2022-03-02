@@ -76,6 +76,7 @@
     <Compile Include="Channel\ChannelConstants.fs" />
     <Compile Include="Channel\CommitmentToLocalExtension.fs" />
     <Compile Include="Channel\CommitmentToDelayedRemoteExtension.fs" />
+    <Compile Include="Channel\CommitmentAnchorExtension.fs" />
     <Compile Include="Channel\Interfaces.fs" />
     <Compile Include="Channel\HTLCChannelType.fs" />
     <Compile Include="Channel\ChannelOperations.fs" />

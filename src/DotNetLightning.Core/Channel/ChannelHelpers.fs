@@ -61,10 +61,12 @@ module ClosingHelpers =
     type OutputClaimError =
         | BalanceBelowDustLimit
         | UnknownClosingTx
+        | Inapplicable
 
     type ClosingResult =
         {
             MainOutput: Result<TransactionBuilder, OutputClaimError>
+            AnchorOutput: Result<TransactionBuilder, OutputClaimError>
         }
 
     let tryGetObscuredCommitmentNumber
@@ -101,6 +103,53 @@ module ClosingHelpers =
                     )
             | Some obscuredCommitmentNumber -> return obscuredCommitmentNumber
         }
+
+    let private ClaimAnchorOutput
+        (commitTx: Transaction)
+        (staticChannelConfig: StaticChannelConfig)
+        (localChannelPrivKeys: ChannelPrivKeys)
+        =
+        result {
+            let fundingPubKey =
+                localChannelPrivKeys
+                    .ToChannelPubKeys()
+                    .FundingPubKey
+
+            let anchorScriptPubKey = Scripts.anchor fundingPubKey
+
+            let anchorIndexOpt =
+                let anchorWitScriptPubKey =
+                    anchorScriptPubKey.WitHash.ScriptPubKey
+
+                Seq.tryFindIndex
+                    (fun (txOut: TxOut) ->
+                        txOut.ScriptPubKey = anchorWitScriptPubKey
+                    )
+                    commitTx.Outputs
+
+            let! anchorIndex =
+                match anchorIndexOpt with
+                | Some anchorIndex -> Ok anchorIndex
+                | None -> Error BalanceBelowDustLimit
+
+            let transactionBuilder =
+                staticChannelConfig.Network.CreateTransactionBuilder()
+
+            transactionBuilder.Extensions.Add(CommitmentAnchorExtension())
+
+            return
+                transactionBuilder
+                    .AddKeys(localChannelPrivKeys.FundingPrivKey.RawKey())
+                    .AddCoin(
+                        ScriptCoin(
+                            commitTx,
+                            uint32 anchorIndex,
+                            anchorScriptPubKey
+                        )
+                    )
+
+        }
+
 
     module RemoteClose =
         let private ClaimMainOutput
@@ -196,6 +245,11 @@ module ClosingHelpers =
                         staticChannelConfig
                         channelPrivKeys
                         remoteCommit.RemotePerCommitmentPoint
+                AnchorOutput =
+                    ClaimAnchorOutput
+                        closingTx
+                        staticChannelConfig
+                        channelPrivKeys
             }
 
     module LocalClose =
@@ -310,10 +364,16 @@ module ClosingHelpers =
                             commitmentNumber
                             staticChannelConfig
                             channelPrivKeys
+                    AnchorOutput =
+                        ClaimAnchorOutput
+                            closingTx
+                            staticChannelConfig
+                            channelPrivKeys
                 }
             | _ ->
                 {
                     MainOutput = Error UnknownClosingTx
+                    AnchorOutput = Error UnknownClosingTx
                 }
 
     module RevokedClose =
@@ -558,14 +618,17 @@ module ClosingHelpers =
                 | Error OutputClaimError.UnknownClosingTx ->
                     {
                         MainOutput = Error OutputClaimError.UnknownClosingTx
+                        AnchorOutput = Error OutputClaimError.UnknownClosingTx
                     }
                 | claimMainOutput ->
                     {
                         MainOutput = claimMainOutput
+                        AnchorOutput = Error Inapplicable
                     }
             | _ ->
                 {
                     MainOutput = Error UnknownClosingTx
+                    AnchorOutput = Error UnknownClosingTx
                 }
 
     let HandleFundingTxSpent
