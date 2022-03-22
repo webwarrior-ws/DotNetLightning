@@ -78,7 +78,7 @@ type Commitments =
         ProposedRemoteChanges: list<IUpdateMsg>
         LocalNextHTLCId: HTLCId
         RemoteNextHTLCId: HTLCId
-        OriginChannels: Map<HTLCId, HTLCSource>
+        OriginChannels: Map<HTLCId, Origin>
     }
 
     member this.AddLocalProposal(proposal: IUpdateMsg) =

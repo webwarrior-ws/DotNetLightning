@@ -22,7 +22,7 @@ type OperationAddHTLC =
         Expiry: BlockHeight
         Onion: OnionPacket
         Upstream: option<UpdateAddHTLCMsg>
-        Origin: option<HTLCSource>
+        Origin: Origin
         CurrentHeight: BlockHeight
     }
 

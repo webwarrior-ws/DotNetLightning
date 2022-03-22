@@ -831,21 +831,13 @@ and Channel =
                         OnionRoutingPacket = op.Onion
                     }
 
-                let commitments1 =
-                    let commitments =
-                        { this.Commitments.AddLocalProposal(add) with
-                            LocalNextHTLCId =
-                                this.Commitments.LocalNextHTLCId + 1UL
-                        }
-
-                    match op.Origin with
-                    | None -> commitments
-                    | Some origin ->
-                        { commitments with
-                            OriginChannels =
-                                this.Commitments.OriginChannels
-                                |> Map.add add.HTLCId origin
-                        }
+                let commitments =
+                    { this.Commitments.AddLocalProposal(add) with
+                        LocalNextHTLCId = this.Commitments.LocalNextHTLCId + 1UL
+                        OriginChannels =
+                            this.Commitments.OriginChannels
+                            |> Map.add add.HTLCId op.Origin
+                    }
 
                 let! remoteNextCommitInfo =
                     this.RemoteNextCommitInfoIfFundingLockedNormal "AddHTLC"
@@ -858,7 +850,7 @@ and Channel =
                 let! reduced =
                     remoteCommit1.Spec.Reduce(
                         this.SavedChannelState.RemoteChanges.ACKed,
-                        commitments1.ProposedLocalChanges
+                        commitments.ProposedLocalChanges
                     )
                     |> expectTransactionError
 
@@ -871,7 +863,7 @@ and Channel =
 
                 let channel =
                     { this with
-                        Commitments = commitments1
+                        Commitments = commitments
                     }
 
                 return channel, add

@@ -33,9 +33,10 @@ type OutboundRoute =
         FirstHopHTLC: LNMoney
     }
 
-type HTLCSource =
-    | PreviousHopData of HTLCPreviousHopData
-    | OutboundRoute of OutboundRoute
+type Origin =
+    | Local
+    //FIXME: we might need additional info for routing payments here
+    | Remote
 
 type HTLCFailureData =
     {
