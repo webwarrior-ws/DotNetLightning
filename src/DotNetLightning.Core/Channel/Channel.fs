@@ -1962,7 +1962,7 @@ and Channel =
                     let originChannels1 =
                         cm.OriginChannels
                         |> Map.filter(fun k _ ->
-                            Set.contains k completedOutgoingHTLCs
+                            not(Set.contains k completedOutgoingHTLCs)
                         )
 
                     { cm with
