@@ -58,21 +58,21 @@ type CommitmentSpec =
         | None -> UnknownHTLC htlcId |> Error
 
     member internal this.FailOutgoingHTLC(htlcId: HTLCId) =
-        match this.OutgoingHTLCs |> Map.tryFind htlcId with
+        match this.IncomingHTLCs |> Map.tryFind htlcId with
         | Some htlc ->
             { this with
                 ToRemote = this.ToRemote + htlc.Amount
-                OutgoingHTLCs = this.OutgoingHTLCs.Remove htlcId
+                IncomingHTLCs = this.IncomingHTLCs.Remove htlcId
             }
             |> Ok
         | None -> UnknownHTLC htlcId |> Error
 
     member internal this.FailIncomingHTLC(htlcId: HTLCId) =
-        match this.IncomingHTLCs |> Map.tryFind htlcId with
+        match this.OutgoingHTLCs |> Map.tryFind htlcId with
         | Some htlc ->
             { this with
                 ToLocal = this.ToLocal + htlc.Amount
-                IncomingHTLCs = this.IncomingHTLCs.Remove htlcId
+                OutgoingHTLCs = this.OutgoingHTLCs.Remove htlcId
             }
             |> Ok
         | None -> UnknownHTLC htlcId |> Error
