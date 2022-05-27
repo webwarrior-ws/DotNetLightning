@@ -51,6 +51,8 @@ type SavedChannelState =
     {
         StaticChannelConfig: StaticChannelConfig
         RemotePerCommitmentSecrets: PerCommitmentSecretStore
+        HistoricalLocalCommits: Map<string, LocalCommit>
+        HistoricalRemoteCommits: Map<string, RemoteCommit>
         ShortChannelId: Option<ShortChannelId>
         LocalCommit: LocalCommit
         RemoteCommit: RemoteCommit

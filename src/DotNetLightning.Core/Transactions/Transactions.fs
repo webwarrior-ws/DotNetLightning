@@ -109,6 +109,7 @@ module private HTLCHelper =
 type HTLCSuccessTx =
     {
         Value: PSBT
+        Id: HTLCId
         PaymentHash: PaymentHash
     }
 
@@ -144,6 +145,7 @@ type HTLCSuccessTx =
 type HTLCTimeoutTx =
     {
         Value: PSBT
+        Id: HTLCId
     }
 
     static member WhichInput: int = 0
@@ -845,6 +847,7 @@ module Transactions =
 
             {
                 HTLCTimeoutTx.Value = psbt
+                Id = htlc.HTLCId
             }
             |> Ok
 
@@ -920,6 +923,7 @@ module Transactions =
 
             {
                 HTLCSuccessTx.Value = psbt
+                Id = htlc.HTLCId
                 PaymentHash = htlc.PaymentHash
             }
             |> Ok

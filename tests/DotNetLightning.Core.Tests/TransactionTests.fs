@@ -160,6 +160,7 @@ let testList =
                         LocalParams = localParams
                         RemoteParams = remoteParam
                         RemoteChannelPubKeys = remoteChannelPubKeys
+                        LocalChannelPubKeys = localChannelPubKeys
                     }
 
                 let unsignedCommitmentTx =
@@ -293,6 +294,7 @@ let testList =
                         LocalParams = remoteLocalParam
                         RemoteParams = remoteRemoteParams
                         RemoteChannelPubKeys = localChannelPubKeys
+                        LocalChannelPubKeys = remoteChannelPubKeys
                     }
 
                 let remoteCommitmentSpec =
@@ -308,12 +310,13 @@ let testList =
                     {
                         Index = commitmentNumber
                         Spec = remoteCommitmentSpec
+                        PerCommitmentPoint = perCommitmentPoint
                         PublishableTxs =
                             {
                                 CommitTx = FinalizedTx commitmentTx
-                                HTLCTxs = List.Empty
                             }
-                        PendingHTLCSuccessTxs = List.Empty
+                        IncomingHtlcTxRemoteSigs = Map.empty
+                        OutgoingHtlcTxRemoteSigs = Map.empty
                     }
 
                 let remoteSavedChannelState: SavedChannelState =
@@ -326,6 +329,8 @@ let testList =
                         RemoteCommit = remoteRemoteCommit
                         LocalChanges = LocalChanges.Zero
                         RemoteChanges = RemoteChanges.Zero
+                        HistoricalRemoteCommits = Map.empty
+                        HistoricalLocalCommits = Map.empty
                     }
 
                 let transactionBuilder =
@@ -627,6 +632,13 @@ let testList =
                     createLocalCommitmentTransaction
                         CommitmentNumber.FirstCommitment
 
+                let remotePerCommitmentPoint =
+                    let remotePerCommitmentSecret =
+                        remoteChannelPrivKeys.CommitmentSeed.DerivePerCommitmentSecret
+                            commitmentNumber
+
+                    remotePerCommitmentSecret.PerCommitmentPoint()
+
                 let remoteCommitmentTx =
                     let remotePerCommitmentPoint =
                         let remotePerCommitmentSecret =
@@ -736,18 +748,20 @@ let testList =
                         LocalParams = remoteLocalParam
                         RemoteParams = remoteRemoteParams
                         RemoteChannelPubKeys = localChannelPubKeys
+                        LocalChannelPubKeys = remoteChannelPubKeys
                     }
 
                 let remoteLocalCommit: LocalCommit =
                     {
                         Index = commitmentNumber
                         Spec = remoteCommitmentSpec
+                        PerCommitmentPoint = remotePerCommitmentPoint
                         PublishableTxs =
                             {
                                 CommitTx = FinalizedTx remoteCommitmentTx
-                                HTLCTxs = List.Empty
                             }
-                        PendingHTLCSuccessTxs = List.Empty
+                        IncomingHtlcTxRemoteSigs = Map.empty
+                        OutgoingHtlcTxRemoteSigs = Map.empty
                     }
 
                 let remoteSavedChannelState: SavedChannelState =
@@ -760,6 +774,8 @@ let testList =
                         RemoteCommit = remoteRemoteCommit
                         LocalChanges = LocalChanges.Zero
                         RemoteChanges = RemoteChanges.Zero
+                        HistoricalRemoteCommits = Map.empty
+                        HistoricalLocalCommits = Map.empty
                     }
 
                 let validateClosingResult
@@ -1117,6 +1133,7 @@ let testList =
                         LocalParams = remoteLocalParam
                         RemoteParams = remoteRemoteParams
                         RemoteChannelPubKeys = localChannelPubKeys
+                        LocalChannelPubKeys = remoteChannelPubKeys
                     }
 
                 let remoteLocalCommit: LocalCommit =
@@ -1126,9 +1143,10 @@ let testList =
                         PublishableTxs =
                             {
                                 CommitTx = FinalizedTx remoteCommitmentTx
-                                HTLCTxs = List.Empty
                             }
-                        PendingHTLCSuccessTxs = List.Empty
+                        PerCommitmentPoint = perCommitmentPoint
+                        IncomingHtlcTxRemoteSigs = Map.empty
+                        OutgoingHtlcTxRemoteSigs = Map.empty
                     }
 
                 let remoteSavedChannelState: SavedChannelState =
@@ -1141,6 +1159,8 @@ let testList =
                         RemoteCommit = remoteRemoteCommit
                         LocalChanges = LocalChanges.Zero
                         RemoteChanges = RemoteChanges.Zero
+                        HistoricalRemoteCommits = Map.empty
+                        HistoricalLocalCommits = Map.empty
                     }
 
                 let remoteSpendingOldLocalCommitmentRes =

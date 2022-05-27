@@ -69,6 +69,11 @@ module ClosingHelpers =
             AnchorOutput: Result<TransactionBuilder, OutputClaimError>
         }
 
+    type HtlcTransaction =
+        | Success of htlcId: HTLCId * spk: Script * preimage: PaymentPreimage
+        | Timeout of htlcId: HTLCId * spk: Script * blockHeight: uint32
+        | Penalty of redeemScript: Script
+
     let tryGetObscuredCommitmentNumber
         (fundingOutPoint: OutPoint)
         (transaction: Transaction)
@@ -151,6 +156,9 @@ module ClosingHelpers =
 
         }
 
+    let private findScriptPubKey (tx: Transaction) (spk: Script) =
+        tx.Outputs.AsIndexedOutputs()
+        |> Seq.find(fun output -> output.TxOut.ScriptPubKey = spk)
 
     module RemoteClose =
         let private ClaimMainOutput
@@ -229,6 +237,218 @@ module ClosingHelpers =
                             CoinOptions(Sequence = (Nullable <| Sequence 1u))
                         )
             }
+
+        let UnresolvedHtlcList
+            (closingTx: Transaction)
+            (remoteCommit: RemoteCommit)
+            (staticChannelConfig: StaticChannelConfig)
+            (hash2preimage: PaymentHash -> option<PaymentPreimage>) //FIXME: should we check ProposedLocalChanges instead?
+            =
+            assert (closingTx.GetTxId() = remoteCommit.TxId)
+            let commitmentFormat = staticChannelConfig.Type.CommitmentFormat
+
+            let perCommitmentPoint = remoteCommit.RemotePerCommitmentPoint
+
+            let localCommitmentPubKeys =
+                let localChannelPubKeys =
+                    staticChannelConfig.LocalChannelPubKeys
+
+                perCommitmentPoint.DeriveCommitmentPubKeys
+                    localChannelPubKeys
+                    staticChannelConfig.Type
+                    true
+
+            let remoteCommitmentPubKeys =
+                let remoteChannelPubKeys =
+                    staticChannelConfig.RemoteChannelPubKeys
+
+                perCommitmentPoint.DeriveCommitmentPubKeys
+                    remoteChannelPubKeys
+                    staticChannelConfig.Type
+                    false
+
+            let unresolvedOutgoingHtlcs =
+                remoteCommit.Spec.OutgoingHTLCs
+                |> Map.toList
+                |> List.choose(fun (_id, htlcAddMsg) ->
+                    match hash2preimage htlcAddMsg.PaymentHash with
+                    | Some preimage ->
+                        let redeem =
+                            Scripts.htlcOffered
+                                remoteCommitmentPubKeys.HtlcPubKey
+                                localCommitmentPubKeys.HtlcPubKey
+                                localCommitmentPubKeys.RevocationPubKey
+                                htlcAddMsg.PaymentHash
+                                commitmentFormat.HtlcCsvLock
+
+                        let spk = redeem.WitHash.ScriptPubKey
+
+                        let outputExistsInCommitmentTx =
+                            closingTx.Outputs
+                            |> Seq.exists(fun output ->
+                                output.ScriptPubKey = spk
+                            )
+
+                        if outputExistsInCommitmentTx then
+                            Some(
+                                HtlcTransaction.Success(
+                                    htlcAddMsg.HTLCId,
+                                    spk,
+                                    preimage
+                                )
+                            )
+                        else
+                            None
+                    | None -> None
+                )
+
+            let unresolvedIncomingHtlcs =
+                remoteCommit.Spec.IncomingHTLCs
+                |> Map.toList
+                |> List.choose(fun (_id, htlcAddMsg) ->
+                    let redeem =
+                        Scripts.htlcReceived
+                            remoteCommitmentPubKeys.HtlcPubKey
+                            localCommitmentPubKeys.HtlcPubKey
+                            localCommitmentPubKeys.RevocationPubKey
+                            htlcAddMsg.PaymentHash
+                            htlcAddMsg.CLTVExpiry.Value
+                            commitmentFormat.HtlcCsvLock
+
+                    let spk = redeem.WitHash.ScriptPubKey
+
+                    let outputExistsInCommitmentTx =
+                        closingTx.Outputs
+                        |> Seq.exists(fun output -> output.ScriptPubKey = spk)
+
+                    if outputExistsInCommitmentTx then
+                        Some(
+                            HtlcTransaction.Timeout(
+                                htlcAddMsg.HTLCId,
+                                spk,
+                                htlcAddMsg.CLTVExpiry.Value
+                            )
+                        )
+                    else
+                        None
+                )
+
+            unresolvedIncomingHtlcs @ unresolvedOutgoingHtlcs
+
+        let ClaimHtlcOutput
+            (htlcInfo: HtlcTransaction)
+            (closingTx: Transaction)
+            (remoteCommit: RemoteCommit)
+            (staticChannelConfig: StaticChannelConfig)
+            (localChannelPrivKeys: ChannelPrivKeys)
+            =
+            let commitmentFormat = staticChannelConfig.Type.CommitmentFormat
+
+            let remotePerCommitmentPoint = remoteCommit.RemotePerCommitmentPoint
+            let localChannelPubKeys = localChannelPrivKeys.ToChannelPubKeys()
+
+            let localCommitmentPubKeys =
+                remotePerCommitmentPoint.DeriveCommitmentPubKeys
+                    localChannelPubKeys
+                    staticChannelConfig.Type
+                    true
+
+            let remoteCommitmentPubKeys =
+                remotePerCommitmentPoint.DeriveCommitmentPubKeys
+                    staticChannelConfig.RemoteChannelPubKeys
+                    staticChannelConfig.Type
+                    false
+
+            let htlcPrivKey =
+                remotePerCommitmentPoint.DeriveHtlcPrivKey
+                    localChannelPrivKeys.HtlcBasepointSecret
+
+            match htlcInfo with
+            | Timeout(htlcId, _, _) ->
+                let htlcAddMsg =
+                    remoteCommit.Spec.IncomingHTLCs |> Map.find htlcId
+
+                let redeem =
+                    Scripts.htlcReceived
+                        remoteCommitmentPubKeys.HtlcPubKey
+                        localCommitmentPubKeys.HtlcPubKey
+                        localCommitmentPubKeys.RevocationPubKey
+                        htlcAddMsg.PaymentHash
+                        htlcAddMsg.CLTVExpiry.Value
+                        commitmentFormat.HtlcCsvLock
+
+                let spk = redeem.WitHash.ScriptPubKey
+
+                let txIn = findScriptPubKey closingTx spk
+
+                let txb =
+                    Transactions.createDeterministicTransactionBuilder
+                        staticChannelConfig.Network
+
+                let scriptCoin = ScriptCoin(txIn, redeem)
+                // we have already done dust limit check above
+                txb.DustPrevention <- false
+                txb.Extensions.Add(HtlcReceivedExtension None)
+
+                txb
+                    .AddCoin(
+                        scriptCoin,
+                        CoinOptions(
+                            Sequence =
+                                (Nullable
+                                 <| Sequence
+                                     commitmentFormat.HtlcTxInputSequence)
+                        )
+                    )
+                    .AddKeys(htlcPrivKey.RawKey())
+                    .SetVersion(2u)
+                    .SetLockTime(!>htlcAddMsg.CLTVExpiry.Value)
+                |> ignore<TransactionBuilder>
+
+                txb, false
+            | Success(htlcId, _, preImage) ->
+                let htlcAddMsg =
+                    remoteCommit.Spec.OutgoingHTLCs |> Map.find htlcId
+
+                let redeem =
+                    Scripts.htlcOffered
+                        remoteCommitmentPubKeys.HtlcPubKey
+                        localCommitmentPubKeys.HtlcPubKey
+                        localCommitmentPubKeys.RevocationPubKey
+                        htlcAddMsg.PaymentHash
+                        commitmentFormat.HtlcCsvLock
+
+                let spk = redeem.WitHash.ScriptPubKey
+
+                let txIn = findScriptPubKey closingTx spk
+
+                let txb =
+                    Transactions.createDeterministicTransactionBuilder
+                        staticChannelConfig.Network
+
+                let scriptCoin = ScriptCoin(txIn, redeem)
+                // we have already done dust limit check above
+                txb.DustPrevention <- false
+                txb.Extensions.Add(HtlcOfferedExtension(Some preImage))
+
+                txb
+                    .AddCoin(
+                        scriptCoin,
+                        CoinOptions(
+                            Sequence =
+                                (Nullable
+                                 <| Sequence
+                                     commitmentFormat.HtlcTxInputSequence)
+                        )
+                    )
+                    .AddKeys(htlcPrivKey.RawKey())
+                    .SetVersion(2u)
+                |> ignore<TransactionBuilder>
+
+                txb, false
+            | Penalty _ ->
+                failwith
+                    "Should not happen because only RevokedClose.UnresolvedHtlcList uses `Penalty` case"
 
         let ClaimCommitTxOutputs
             (closingTx: Transaction)
@@ -376,6 +596,322 @@ module ClosingHelpers =
                     MainOutput = Error UnknownClosingTx
                     AnchorOutput = Error UnknownClosingTx
                 }
+
+        let internal unresolvedHtlcList
+            (closingTx: Transaction)
+            (localCommit: LocalCommit)
+            (staticChannelConfig: StaticChannelConfig)
+            (hash2preimage: PaymentHash -> option<PaymentPreimage>) //FIXME: should we check ProposedLocalChanges instead?
+            =
+            assert
+                (closingTx.GetTxId() = localCommit.PublishableTxs.CommitTx.Value.GetTxId
+                                           ())
+
+            let commitmentFormat = staticChannelConfig.Type.CommitmentFormat
+
+            let perCommitmentPoint = localCommit.PerCommitmentPoint
+
+            let localCommitmentPubKeys =
+                let localChannelPubKeys =
+                    staticChannelConfig.LocalChannelPubKeys
+
+                perCommitmentPoint.DeriveCommitmentPubKeys
+                    localChannelPubKeys
+                    staticChannelConfig.Type
+                    false
+
+            let remoteCommitmentPubKeys =
+                let remoteChannelPubKeys =
+                    staticChannelConfig.RemoteChannelPubKeys
+
+                perCommitmentPoint.DeriveCommitmentPubKeys
+                    remoteChannelPubKeys
+                    staticChannelConfig.Type
+                    true
+
+            let unresolvedOutgoingHtlcs =
+                localCommit.Spec.OutgoingHTLCs
+                |> Map.toList
+                |> List.choose(fun (_id, htlcAddMsg) ->
+                    let redeem =
+                        Scripts.htlcOffered
+                            localCommitmentPubKeys.HtlcPubKey
+                            remoteCommitmentPubKeys.HtlcPubKey
+                            remoteCommitmentPubKeys.RevocationPubKey
+                            htlcAddMsg.PaymentHash
+                            commitmentFormat.HtlcCsvLock
+
+                    let spk = redeem.WitHash.ScriptPubKey
+
+                    let outputExistsInCommitmentTx =
+                        closingTx.Outputs
+                        |> Seq.exists(fun output -> output.ScriptPubKey = spk)
+
+                    if outputExistsInCommitmentTx then
+                        Some(
+                            HtlcTransaction.Timeout(
+                                htlcAddMsg.HTLCId,
+                                spk,
+                                htlcAddMsg.CLTVExpiry.Value
+                            )
+                        )
+                    else
+                        None
+                )
+
+            let unresolvedIncomingHtlcs =
+                localCommit.Spec.IncomingHTLCs
+                |> Map.toList
+                |> List.choose(fun (_id, htlcAddMsg) ->
+                    match hash2preimage htlcAddMsg.PaymentHash with
+                    | Some preimage ->
+                        let redeem =
+                            Scripts.htlcReceived
+                                localCommitmentPubKeys.HtlcPubKey
+                                remoteCommitmentPubKeys.HtlcPubKey
+                                remoteCommitmentPubKeys.RevocationPubKey
+                                htlcAddMsg.PaymentHash
+                                htlcAddMsg.CLTVExpiry.Value
+                                commitmentFormat.HtlcCsvLock
+
+                        let spk = redeem.WitHash.ScriptPubKey
+
+                        let outputExistsInCommitmentTx =
+                            closingTx.Outputs
+                            |> Seq.exists(fun output ->
+                                output.ScriptPubKey = spk
+                            )
+
+                        if outputExistsInCommitmentTx then
+                            Some(
+                                HtlcTransaction.Success(
+                                    htlcAddMsg.HTLCId,
+                                    spk,
+                                    preimage
+                                )
+                            )
+                        else
+                            None
+                    | None -> None
+                )
+
+            unresolvedIncomingHtlcs @ unresolvedOutgoingHtlcs
+
+        let internal claimHtlcOutput
+            (htlcInfo: HtlcTransaction)
+            (closingTx: Transaction)
+            (localCommit: LocalCommit)
+            (staticChannelConfig: StaticChannelConfig)
+            (localChannelPrivKeys: ChannelPrivKeys)
+            =
+            let commitmentFormat = staticChannelConfig.Type.CommitmentFormat
+
+            let perCommitmentPoint = localCommit.PerCommitmentPoint
+            let localChannelPubKeys = localChannelPrivKeys.ToChannelPubKeys()
+
+            let localCommitmentPubKeys =
+                perCommitmentPoint.DeriveCommitmentPubKeys
+                    localChannelPubKeys
+                    staticChannelConfig.Type
+                    false
+
+            let remoteCommitmentPubKeys =
+                perCommitmentPoint.DeriveCommitmentPubKeys
+                    staticChannelConfig.RemoteChannelPubKeys
+                    staticChannelConfig.Type
+                    true
+
+            let htlcPrivKey =
+                perCommitmentPoint.DeriveHtlcPrivKey
+                    localChannelPrivKeys.HtlcBasepointSecret
+
+            let dest =
+                Scripts.toLocalDelayed
+                    remoteCommitmentPubKeys.RevocationPubKey
+                    staticChannelConfig.RemoteParams.ToSelfDelay
+                    localCommitmentPubKeys.DelayedPaymentPubKey
+
+            match htlcInfo with
+            | Timeout(htlcId, _, _) ->
+                let htlcAddMsg =
+                    localCommit.Spec.OutgoingHTLCs |> Map.find htlcId
+
+                let remoteSignature =
+                    localCommit.OutgoingHtlcTxRemoteSigs |> Map.find htlcId
+
+                let redeem =
+                    Scripts.htlcOffered
+                        localCommitmentPubKeys.HtlcPubKey
+                        remoteCommitmentPubKeys.HtlcPubKey
+                        remoteCommitmentPubKeys.RevocationPubKey
+                        htlcAddMsg.PaymentHash
+                        commitmentFormat.HtlcCsvLock
+
+                let spk = redeem.WitHash.ScriptPubKey
+
+                let txIn = findScriptPubKey closingTx spk
+
+                let txb =
+                    Transactions.createDeterministicTransactionBuilder
+                        staticChannelConfig.Network
+
+                let scriptCoin = ScriptCoin(txIn, redeem)
+                // we have already done dust limit check above
+                txb.DustPrevention <- false
+                txb.Extensions.Add(HtlcOfferedExtension None)
+
+                txb
+                    .AddCoin(
+                        scriptCoin,
+                        CoinOptions(
+                            Sequence =
+                                (Nullable
+                                 <| Sequence
+                                     commitmentFormat.HtlcTxInputSequence)
+                        )
+                    )
+                    .Send(dest.WitHash, htlcAddMsg.Amount.ToMoney())
+                    .AddKnownSignature(
+                        remoteCommitmentPubKeys.HtlcPubKey.RawPubKey(),
+                        remoteSignature,
+                        scriptCoin.Outpoint
+                    )
+                    .AddKeys(htlcPrivKey.RawKey())
+                    .SetVersion(2u)
+                    .SetLockTime(!>htlcAddMsg.CLTVExpiry.Value)
+                |> ignore<TransactionBuilder>
+
+                txb, true
+            | Success(htlcId, _, preImage) ->
+                let htlcAddMsg =
+                    localCommit.Spec.IncomingHTLCs |> Map.find htlcId
+
+                let remoteSignature =
+                    localCommit.IncomingHtlcTxRemoteSigs |> Map.find htlcId
+
+                let redeem =
+                    Scripts.htlcReceived
+                        localCommitmentPubKeys.HtlcPubKey
+                        remoteCommitmentPubKeys.HtlcPubKey
+                        remoteCommitmentPubKeys.RevocationPubKey
+                        htlcAddMsg.PaymentHash
+                        htlcAddMsg.CLTVExpiry.Value
+                        commitmentFormat.HtlcCsvLock
+
+                let spk = redeem.WitHash.ScriptPubKey
+
+                let txIn = findScriptPubKey closingTx spk
+
+                let txb =
+                    Transactions.createDeterministicTransactionBuilder
+                        staticChannelConfig.Network
+
+                let scriptCoin = ScriptCoin(txIn, redeem)
+                // we have already done dust limit check above
+                txb.DustPrevention <- false
+                txb.Extensions.Add(HtlcReceivedExtension(Some preImage))
+
+                txb
+                    .AddCoin(
+                        scriptCoin,
+                        CoinOptions(
+                            Sequence =
+                                (Nullable
+                                 <| Sequence
+                                     commitmentFormat.HtlcTxInputSequence)
+                        )
+                    )
+                    .Send(dest.WitHash, htlcAddMsg.Amount.ToMoney())
+                    .AddKnownSignature(
+                        remoteCommitmentPubKeys.HtlcPubKey.RawPubKey(),
+                        remoteSignature,
+                        scriptCoin.Outpoint
+                    )
+                    .AddKeys(htlcPrivKey.RawKey())
+                    .SetVersion(TxVersionNumberOfCommitmentTxs)
+                |> ignore<TransactionBuilder>
+
+                txb, true
+            | Penalty _ ->
+                failwith
+                    "Should not happen because only RevokedClose.UnresolvedHtlcList uses `Penalty` case"
+
+        let internal claimDelayedHtlcTx
+            (spendingTx: Transaction)
+            (localCommit: LocalCommit)
+            (staticChannelConfig: StaticChannelConfig)
+            (localChannelPrivKeys: ChannelPrivKeys)
+            =
+
+            let perCommitmentPoint = localCommit.PerCommitmentPoint
+
+            let localCommitmentPubKeys =
+                let localChannelPubKeys =
+                    staticChannelConfig.LocalChannelPubKeys
+
+                perCommitmentPoint.DeriveCommitmentPubKeys
+                    localChannelPubKeys
+                    staticChannelConfig.Type
+                    false
+
+            let remoteCommitmentPubKeys =
+                let remoteChannelPubKeys =
+                    staticChannelConfig.RemoteChannelPubKeys
+
+                perCommitmentPoint.DeriveCommitmentPubKeys
+                    remoteChannelPubKeys
+                    staticChannelConfig.Type
+                    true
+
+            let delayedPrivKey =
+                perCommitmentPoint.DeriveDelayedPaymentPrivKey
+                    localChannelPrivKeys.DelayedPaymentBasepointSecret
+
+            let redeem =
+                Scripts.toLocalDelayed
+                    remoteCommitmentPubKeys.RevocationPubKey
+                    staticChannelConfig.RemoteParams.ToSelfDelay
+                    localCommitmentPubKeys.DelayedPaymentPubKey
+
+            let spk = redeem.WitHash.ScriptPubKey
+
+            let outputsToSpend =
+                spendingTx.Outputs.AsIndexedOutputs()
+                |> Seq.where(fun out -> out.TxOut.ScriptPubKey = spk)
+                |> Seq.map(fun out -> ScriptCoin(out.ToCoin(), redeem) :> ICoin)
+                |> Seq.toArray
+
+            if not(Seq.isEmpty outputsToSpend) then
+                let txb =
+                    Transactions.createDeterministicTransactionBuilder
+                        staticChannelConfig.Network
+
+                txb.Extensions.Add(CommitmentToLocalExtension())
+
+                outputsToSpend
+                |> Seq.iter(fun output ->
+                    txb.AddCoin(
+                        output,
+                        CoinOptions(
+                            Sequence =
+                                (Nullable
+                                 <| Sequence(
+                                     uint32
+                                         staticChannelConfig.RemoteParams.ToSelfDelay.Value
+                                 ))
+                        )
+                    )
+                    |> ignore<TransactionBuilder>
+                )
+
+                txb
+                    .AddKeys(delayedPrivKey.RawKey())
+                    .SetVersion(TxVersionNumberOfCommitmentTxs)
+                |> ignore<TransactionBuilder>
+
+                Some txb
+            else
+                None
 
     module RevokedClose =
         let private ClaimMainOutput
@@ -633,6 +1169,256 @@ module ClosingHelpers =
                     AnchorOutput = Error UnknownClosingTx
                 }
 
+        let UnresolvedHtlcList
+            (closingTx: Transaction)
+            (savedChannelState: SavedChannelState)
+            =
+            let staticChannelConfig = savedChannelState.StaticChannelConfig
+            let commitmentFormat = staticChannelConfig.Type.CommitmentFormat
+
+            let remoteCommitOpt =
+                savedChannelState.HistoricalRemoteCommits
+                |> Map.tryFind(closingTx.GetTxId().Value.ToString())
+
+            match remoteCommitOpt with
+            | Some remoteCommit ->
+                let perCommitmentPoint = remoteCommit.RemotePerCommitmentPoint
+
+                let localCommitmentPubKeys =
+                    let localChannelPubKeys =
+                        staticChannelConfig.LocalChannelPubKeys
+
+                    perCommitmentPoint.DeriveCommitmentPubKeys
+                        localChannelPubKeys
+                        staticChannelConfig.Type
+                        true
+
+                let remoteCommitmentPubKeys =
+                    let remoteChannelPubKeys =
+                        staticChannelConfig.RemoteChannelPubKeys
+
+                    perCommitmentPoint.DeriveCommitmentPubKeys
+                        remoteChannelPubKeys
+                        staticChannelConfig.Type
+                        false
+
+                let unresolvedOutgoingHtlcs =
+                    remoteCommit.Spec.OutgoingHTLCs
+                    |> Map.toList
+                    |> List.choose(fun (_id, htlcAddMsg) ->
+                        let redeem =
+                            Scripts.htlcOffered
+                                remoteCommitmentPubKeys.HtlcPubKey
+                                localCommitmentPubKeys.HtlcPubKey
+                                localCommitmentPubKeys.RevocationPubKey
+                                htlcAddMsg.PaymentHash
+                                commitmentFormat.HtlcCsvLock
+
+                        let spk = redeem.WitHash.ScriptPubKey
+
+                        let outputExistsInCommitmentTx =
+                            closingTx.Outputs
+                            |> Seq.exists(fun output ->
+                                output.ScriptPubKey = spk
+                            )
+
+                        if outputExistsInCommitmentTx then
+                            Some(HtlcTransaction.Penalty redeem)
+                        else
+                            None
+                    )
+
+                let unresolvedIncomingHtlcs =
+                    remoteCommit.Spec.IncomingHTLCs
+                    |> Map.toList
+                    |> List.choose(fun (_id, htlcAddMsg) ->
+                        let redeem =
+                            Scripts.htlcReceived
+                                remoteCommitmentPubKeys.HtlcPubKey
+                                localCommitmentPubKeys.HtlcPubKey
+                                localCommitmentPubKeys.RevocationPubKey
+                                htlcAddMsg.PaymentHash
+                                htlcAddMsg.CLTVExpiry.Value
+                                commitmentFormat.HtlcCsvLock
+
+                        let spk = redeem.WitHash.ScriptPubKey
+
+                        let outputExistsInCommitmentTx =
+                            closingTx.Outputs
+                            |> Seq.exists(fun output ->
+                                output.ScriptPubKey = spk
+                            )
+
+                        if outputExistsInCommitmentTx then
+                            Some(HtlcTransaction.Penalty redeem)
+                        else
+                            None
+                    )
+
+                unresolvedOutgoingHtlcs @ unresolvedIncomingHtlcs
+            | None -> List.empty
+
+        let ClaimHtlcOutput
+            (htlcInfo: HtlcTransaction)
+            (closingTx: Transaction)
+            (remotePerCommitmentSecretStore: PerCommitmentSecretStore)
+            (staticChannelConfig: StaticChannelConfig)
+            (localChannelPrivKeys: ChannelPrivKeys)
+            =
+            let commitmentFormat = staticChannelConfig.Type.CommitmentFormat
+
+            let obscuredCommitmentNumberRes =
+                tryGetObscuredCommitmentNumber
+                    staticChannelConfig.FundingScriptCoin.Outpoint
+                    closingTx
+
+            match obscuredCommitmentNumberRes with
+            | Ok obscuredCommitmentNumber ->
+                let localChannelPubKeys =
+                    staticChannelConfig.LocalChannelPubKeys
+
+                let remoteChannelPubKeys =
+                    staticChannelConfig.RemoteChannelPubKeys
+
+                let commitmentNumber =
+                    obscuredCommitmentNumber.Unobscure
+                        staticChannelConfig.IsFunder
+                        localChannelPubKeys.PaymentBasepoint
+                        remoteChannelPubKeys.PaymentBasepoint
+
+                let perCommitmentSecret =
+                    let commitmentSecretOpt =
+                        remotePerCommitmentSecretStore.GetPerCommitmentSecret
+                            commitmentNumber
+
+                    match commitmentSecretOpt with
+                    | Some commitmentSecret -> commitmentSecret
+                    | None ->
+                        failwithf
+                            "Could not find commitment secret for commitment number %d"
+                            (commitmentNumber.Index().UInt64)
+
+                let revocationPrivKey =
+                    perCommitmentSecret.DeriveRevocationPrivKey
+                        localChannelPrivKeys.RevocationBasepointSecret
+
+                match htlcInfo with
+                | Penalty redeemScript ->
+                    let spk = redeemScript.WitHash.ScriptPubKey
+                    let txIn = findScriptPubKey closingTx spk
+
+                    let txb =
+                        Transactions.createDeterministicTransactionBuilder
+                            staticChannelConfig.Network
+
+                    let scriptCoin = ScriptCoin(txIn, redeemScript)
+                    // we have already done dust limit check above
+                    txb.DustPrevention <- false
+                    txb.Extensions.Add(HtlcReceivedExtension None)
+                    txb.Extensions.Add(HtlcOfferedExtension None)
+
+                    txb
+                        .AddCoin(
+                            scriptCoin,
+                            CoinOptions(
+                                Sequence =
+                                    (Nullable
+                                     <| Sequence
+                                         commitmentFormat.HtlcTxInputSequence)
+                            )
+                        )
+                        .AddKeys(revocationPrivKey.RawKey())
+                        .SetVersion(2u)
+                    |> ignore<TransactionBuilder>
+
+                    txb, false
+                | _ ->
+                    failwith
+                        "We shouldn't have non-penalty HtlcTransaction here"
+            | Error _ -> failwith "Invalid closing tx"
+
+        let internal claimDelayedHtlcTx
+            (spendingTx: Transaction)
+            (remoteCommit: RemoteCommit)
+            (remotePerCommitmentSecretStore: PerCommitmentSecretStore)
+            (staticChannelConfig: StaticChannelConfig)
+            (localChannelPrivKeys: ChannelPrivKeys)
+            =
+
+            let perCommitmentSecretOpt =
+                let commitmentSecretOpt =
+                    remotePerCommitmentSecretStore.GetPerCommitmentSecret
+                        remoteCommit.Index
+
+                match commitmentSecretOpt with
+                | Some commitmentSecret -> Some commitmentSecret
+                | None -> None
+
+            match perCommitmentSecretOpt with
+            | Some perCommitmentSecret ->
+                let perCommitmentPoint =
+                    perCommitmentSecret.PerCommitmentPoint()
+
+                let localCommitmentPubKeys =
+                    let localChannelPubKeys =
+                        staticChannelConfig.LocalChannelPubKeys
+
+                    perCommitmentPoint.DeriveCommitmentPubKeys
+                        localChannelPubKeys
+                        staticChannelConfig.Type
+                        true
+
+                let remoteCommitmentPubKeys =
+                    let remoteChannelPubKeys =
+                        staticChannelConfig.RemoteChannelPubKeys
+
+                    perCommitmentPoint.DeriveCommitmentPubKeys
+                        remoteChannelPubKeys
+                        staticChannelConfig.Type
+                        false
+
+                let revocationPrivKey =
+                    perCommitmentSecret.DeriveRevocationPrivKey
+                        localChannelPrivKeys.RevocationBasepointSecret
+
+                let redeem =
+                    Scripts.toLocalDelayed
+                        localCommitmentPubKeys.RevocationPubKey
+                        staticChannelConfig.LocalParams.ToSelfDelay
+                        remoteCommitmentPubKeys.DelayedPaymentPubKey
+
+                let spk = redeem.WitHash.ScriptPubKey
+
+                let outputsToSpend =
+                    spendingTx.Outputs.AsIndexedOutputs()
+                    |> Seq.where(fun out -> out.TxOut.ScriptPubKey = spk)
+                    |> Seq.map(fun out ->
+                        ScriptCoin(out.ToCoin(), redeem) :> ICoin
+                    )
+                    |> Seq.toArray
+
+                if not(Seq.isEmpty outputsToSpend) then
+                    let txb =
+                        Transactions.createDeterministicTransactionBuilder
+                            staticChannelConfig.Network
+
+                    txb.Extensions.Add(CommitmentToLocalExtension())
+
+                    outputsToSpend
+                    |> Seq.iter(fun output ->
+                        txb.AddCoin(output) |> ignore<TransactionBuilder>
+                    )
+
+                    txb
+                        .AddKeys(revocationPrivKey.RawKey())
+                        .SetVersion(TxVersionNumberOfCommitmentTxs)
+                    |> ignore<TransactionBuilder>
+
+                    Some txb
+                else
+                    None
+            | None -> None
+
     let HandleFundingTxSpent
         (savedChannelState: SavedChannelState)
         (remoteNextCommitInfoOpt: Option<RemoteNextCommitInfo>)
@@ -643,6 +1429,14 @@ module ClosingHelpers =
 
         if closingTxId = savedChannelState.LocalCommit.PublishableTxs.CommitTx.Value.GetTxId
                              () then
+            LocalClose.ClaimCommitTxOutputs
+                closingTx
+                savedChannelState.StaticChannelConfig
+                channelPrivKeys
+        elif
+            savedChannelState.HistoricalLocalCommits.ContainsKey
+                (closingTxId.Value.ToString())
+        then
             LocalClose.ClaimCommitTxOutputs
                 closingTx
                 savedChannelState.StaticChannelConfig
@@ -669,3 +1463,152 @@ module ClosingHelpers =
                     savedChannelState.StaticChannelConfig
                     savedChannelState.RemotePerCommitmentSecrets
                     channelPrivKeys
+
+    let UnresolvedHtlcList
+        (savedChannelState: SavedChannelState)
+        (remoteNextCommitInfoOpt: Option<RemoteNextCommitInfo>)
+        (closingTx: Transaction)
+        hash2preimage
+        =
+        let closingTxId = closingTx.GetTxId()
+
+        if savedChannelState.LocalCommit.PublishableTxs.CommitTx.Value.GetTxId() = closingTxId then
+            LocalClose.unresolvedHtlcList
+                closingTx
+                savedChannelState.LocalCommit
+                savedChannelState.StaticChannelConfig
+                hash2preimage
+        elif
+            savedChannelState.HistoricalLocalCommits.ContainsKey
+                (closingTxId.Value.ToString())
+        then
+            let localCommit =
+                savedChannelState.HistoricalLocalCommits
+                |> Map.find(closingTxId.Value.ToString())
+
+            LocalClose.unresolvedHtlcList
+                closingTx
+                localCommit
+                savedChannelState.StaticChannelConfig
+                hash2preimage
+        elif closingTxId = savedChannelState.RemoteCommit.TxId then
+            RemoteClose.UnresolvedHtlcList
+                closingTx
+                savedChannelState.RemoteCommit
+                savedChannelState.StaticChannelConfig
+                hash2preimage
+        else
+            match remoteNextCommitInfoOpt with
+            | Some(Waiting remoteNextCommit) when
+                closingTxId = remoteNextCommit.TxId
+                ->
+                RemoteClose.UnresolvedHtlcList
+                    closingTx
+                    remoteNextCommit
+                    savedChannelState.StaticChannelConfig
+                    hash2preimage
+            | _ -> RevokedClose.UnresolvedHtlcList closingTx savedChannelState
+
+    let ClaimHtlcOutput
+        (htlcInfo: HtlcTransaction)
+        (savedChannelState: SavedChannelState)
+        (remoteNextCommitInfoOpt: Option<RemoteNextCommitInfo>)
+        (closingTx: Transaction)
+        (localChannelPrivKeys: ChannelPrivKeys)
+        =
+        let closingTxId = closingTx.GetTxId()
+
+        if savedChannelState.LocalCommit.PublishableTxs.CommitTx.Value.GetTxId() = closingTxId then
+            LocalClose.claimHtlcOutput
+                htlcInfo
+                closingTx
+                savedChannelState.LocalCommit
+                savedChannelState.StaticChannelConfig
+                localChannelPrivKeys
+        elif
+            savedChannelState.HistoricalLocalCommits.ContainsKey
+                (closingTxId.Value.ToString())
+        then
+            let localCommit =
+                savedChannelState.HistoricalLocalCommits
+                |> Map.find(closingTxId.Value.ToString())
+
+            LocalClose.claimHtlcOutput
+                htlcInfo
+                closingTx
+                localCommit
+                savedChannelState.StaticChannelConfig
+                localChannelPrivKeys
+        elif closingTxId = savedChannelState.RemoteCommit.TxId then
+            RemoteClose.ClaimHtlcOutput
+                htlcInfo
+                closingTx
+                savedChannelState.RemoteCommit
+                savedChannelState.StaticChannelConfig
+                localChannelPrivKeys
+        else
+            match remoteNextCommitInfoOpt with
+            | Some(Waiting remoteNextCommit) when
+                closingTxId = remoteNextCommit.TxId
+                ->
+                RemoteClose.ClaimHtlcOutput
+                    htlcInfo
+                    closingTx
+                    remoteNextCommit
+                    savedChannelState.StaticChannelConfig
+                    localChannelPrivKeys
+            | _ ->
+                RevokedClose.ClaimHtlcOutput
+                    htlcInfo
+                    closingTx
+                    savedChannelState.RemotePerCommitmentSecrets
+                    savedChannelState.StaticChannelConfig
+                    localChannelPrivKeys
+
+    let ClaimDelayedHtlcTx
+        (closingTx: Transaction)
+        (spendingTx: Transaction)
+        (savedChannelState: SavedChannelState)
+        (remoteNextCommitInfoOpt: Option<RemoteNextCommitInfo>)
+        (localChannelPrivKeys: ChannelPrivKeys)
+        =
+        let closingTxId = closingTx.GetTxId()
+
+        if savedChannelState.LocalCommit.PublishableTxs.CommitTx.Value.GetTxId() = closingTxId then
+            LocalClose.claimDelayedHtlcTx
+                spendingTx
+                savedChannelState.LocalCommit
+                savedChannelState.StaticChannelConfig
+                localChannelPrivKeys
+        elif
+            savedChannelState.HistoricalLocalCommits.ContainsKey
+                (closingTxId.Value.ToString())
+        then
+            let localCommit =
+                savedChannelState.HistoricalLocalCommits
+                |> Map.find(closingTxId.Value.ToString())
+
+            LocalClose.claimDelayedHtlcTx
+                spendingTx
+                localCommit
+                savedChannelState.StaticChannelConfig
+                localChannelPrivKeys
+        elif closingTxId = savedChannelState.RemoteCommit.TxId then
+            None
+        else
+            match remoteNextCommitInfoOpt with
+            | Some(Waiting remoteNextCommit) when
+                closingTxId = remoteNextCommit.TxId
+                ->
+                None
+            | _ ->
+                let remoteCommit =
+                    savedChannelState.HistoricalRemoteCommits
+                    |> Map.find(closingTxId.Value.ToString())
+
+                RevokedClose.claimDelayedHtlcTx
+                    spendingTx
+                    remoteCommit
+                    savedChannelState.RemotePerCommitmentSecrets
+                    savedChannelState.StaticChannelConfig
+                    localChannelPrivKeys

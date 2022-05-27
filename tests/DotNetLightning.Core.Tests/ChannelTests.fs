@@ -133,9 +133,10 @@ let tests =
                         PublishableTxs =
                             {
                                 CommitTx = FinalizedTx dummyTransaction
-                                HTLCTxs = List.Empty
                             }
-                        PendingHTLCSuccessTxs = List.Empty
+                        PerCommitmentPoint = dummyPerCommitmentPoint
+                        IncomingHtlcTxRemoteSigs = Map.empty
+                        OutgoingHtlcTxRemoteSigs = Map.empty
                     }
 
                 let savedChannelState(weAreFunder: bool) =
@@ -152,6 +153,7 @@ let tests =
                             LocalParams = dummyLocalParams
                             RemoteParams = remoteParams
                             RemoteChannelPubKeys = dummyChannelPubKeys
+                            LocalChannelPubKeys = dummyChannelPubKeys
                             Type = ChannelType.Normal
                         }
 
@@ -164,6 +166,8 @@ let tests =
                         RemoteCommit = remoteCommit
                         LocalChanges = LocalChanges.Zero
                         RemoteChanges = RemoteChanges.Zero
+                        HistoricalLocalCommits = Map.empty
+                        HistoricalRemoteCommits = Map.empty
                     }
 
                 let commitments =

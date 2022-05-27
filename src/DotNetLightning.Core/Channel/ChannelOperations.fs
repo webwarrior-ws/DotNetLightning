@@ -147,6 +147,7 @@ type StaticChannelConfig =
         LocalParams: LocalParams
         RemoteParams: RemoteParams
         RemoteChannelPubKeys: ChannelPubKeys
+        LocalChannelPubKeys: ChannelPubKeys
         Type: ChannelType
     }
 

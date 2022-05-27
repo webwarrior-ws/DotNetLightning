@@ -61,6 +61,23 @@ type ChannelWaitingForFundingSigned =
                     OriginChannels = Map.empty
                 }
 
+            let perCommitmentPoint =
+                this.ChannelPrivKeys.CommitmentSeed.DerivePerCommitmentPoint
+                    CommitmentNumber.FirstCommitment
+
+            let localCommit =
+                {
+                    Index = CommitmentNumber.FirstCommitment
+                    PerCommitmentPoint = perCommitmentPoint
+                    Spec = this.LocalSpec
+                    PublishableTxs =
+                        {
+                            PublishableTxs.CommitTx = finalizedLocalCommitTx
+                        }
+                    IncomingHtlcTxRemoteSigs = Map.empty
+                    OutgoingHtlcTxRemoteSigs = Map.empty
+                }
+
             let channel =
                 {
                     SavedChannelState =
@@ -69,21 +86,23 @@ type ChannelWaitingForFundingSigned =
                             RemotePerCommitmentSecrets =
                                 PerCommitmentSecretStore()
                             ShortChannelId = None
-                            LocalCommit =
-                                {
-                                    Index = CommitmentNumber.FirstCommitment
-                                    Spec = this.LocalSpec
-                                    PublishableTxs =
-                                        {
-                                            PublishableTxs.CommitTx =
-                                                finalizedLocalCommitTx
-                                            HTLCTxs = []
-                                        }
-                                    PendingHTLCSuccessTxs = []
-                                }
+                            LocalCommit = localCommit
                             RemoteCommit = this.RemoteCommit
                             LocalChanges = LocalChanges.Zero
                             RemoteChanges = RemoteChanges.Zero
+                            HistoricalLocalCommits =
+                                Map.empty
+                                |> Map.add
+                                    (finalizedLocalCommitTx
+                                        .Value
+                                        .GetTxId()
+                                        .Value.ToString())
+                                    localCommit
+                            HistoricalRemoteCommits =
+                                Map.empty
+                                |> Map.add
+                                    (this.RemoteCommit.TxId.Value.ToString())
+                                    this.RemoteCommit
                         }
                     ChannelOptions = this.ChannelOptions
                     ChannelPrivKeys = this.ChannelPrivKeys
@@ -124,11 +143,11 @@ and ChannelWaitingForFundingCreated =
             let channelType =
                 this.RemoteParams.ObtainChannelType this.LocalParams
 
-            let! (localSpec, localCommitTx, remoteSpec, remoteCommitTx) =
-                let firstPerCommitmentPoint =
-                    this.ChannelPrivKeys.CommitmentSeed.DerivePerCommitmentPoint
-                        CommitmentNumber.FirstCommitment
+            let firstPerCommitmentPoint =
+                this.ChannelPrivKeys.CommitmentSeed.DerivePerCommitmentPoint
+                    CommitmentNumber.FirstCommitment
 
+            let! (localSpec, localCommitTx, remoteSpec, remoteCommitTx) =
                 ChannelHelpers.makeFirstCommitTxs
                     false
                     (this.ChannelPrivKeys.ToChannelPubKeys())
@@ -202,6 +221,8 @@ and ChannelWaitingForFundingCreated =
                     LocalParams = this.LocalParams
                     RemoteParams = this.RemoteParams
                     RemoteChannelPubKeys = this.RemoteChannelPubKeys
+                    LocalChannelPubKeys =
+                        this.ChannelPrivKeys.ToChannelPubKeys()
                     Type = channelType
                 }
 
@@ -213,6 +234,32 @@ and ChannelWaitingForFundingCreated =
                     Signature = !>localSigOfRemoteCommit.Signature
                 }
 
+            let localCommit =
+                {
+                    Index = CommitmentNumber.FirstCommitment
+                    PerCommitmentPoint = firstPerCommitmentPoint
+                    Spec = localSpec
+                    PublishableTxs =
+                        {
+                            PublishableTxs.CommitTx = finalizedCommitTx
+                        }
+                    IncomingHtlcTxRemoteSigs = Map.empty
+                    OutgoingHtlcTxRemoteSigs = Map.empty
+                }
+
+            let remoteCommit =
+                {
+                    Index = CommitmentNumber.FirstCommitment
+                    Spec = remoteSpec
+                    TxId =
+                        remoteCommitTx
+                            .Value
+                            .GetGlobalTransaction()
+                            .GetTxId()
+                    RemotePerCommitmentPoint =
+                        this.RemoteFirstPerCommitmentPoint
+                }
+
             let channel =
                 {
                     SavedChannelState =
@@ -221,32 +268,23 @@ and ChannelWaitingForFundingCreated =
                             RemotePerCommitmentSecrets =
                                 PerCommitmentSecretStore()
                             ShortChannelId = None
-                            LocalCommit =
-                                {
-                                    Index = CommitmentNumber.FirstCommitment
-                                    Spec = localSpec
-                                    PublishableTxs =
-                                        {
-                                            PublishableTxs.CommitTx =
-                                                finalizedCommitTx
-                                            HTLCTxs = []
-                                        }
-                                    PendingHTLCSuccessTxs = []
-                                }
-                            RemoteCommit =
-                                {
-                                    Index = CommitmentNumber.FirstCommitment
-                                    Spec = remoteSpec
-                                    TxId =
-                                        remoteCommitTx
-                                            .Value
-                                            .GetGlobalTransaction()
-                                            .GetTxId()
-                                    RemotePerCommitmentPoint =
-                                        this.RemoteFirstPerCommitmentPoint
-                                }
+                            LocalCommit = localCommit
+                            RemoteCommit = remoteCommit
                             LocalChanges = LocalChanges.Zero
                             RemoteChanges = RemoteChanges.Zero
+                            HistoricalLocalCommits =
+                                Map.empty
+                                |> Map.add
+                                    (finalizedCommitTx
+                                        .Value
+                                        .GetTxId()
+                                        .Value.ToString())
+                                    localCommit
+                            HistoricalRemoteCommits =
+                                Map.empty
+                                |> Map.add
+                                    (remoteCommit.TxId.Value.ToString())
+                                    remoteCommit
                         }
                     ChannelOptions = this.ChannelOptions
                     ChannelPrivKeys = this.ChannelPrivKeys
@@ -360,6 +398,8 @@ and ChannelWaitingForFundingTx =
                             LocalParams = localParams
                             RemoteParams = remoteParams
                             RemoteChannelPubKeys = this.RemoteChannelPubKeys
+                            LocalChannelPubKeys =
+                                this.ChannelPrivKeys.ToChannelPubKeys()
                             Type = channelType
                         }
                     ChannelOptions = this.ChannelOptions
@@ -1722,6 +1762,11 @@ and Channel =
                                 Signed =
                                     this.SavedChannelState.RemoteChanges.ACKed
                             }
+                        HistoricalRemoteCommits =
+                            this.SavedChannelState.HistoricalRemoteCommits
+                            |> Map.add
+                                (remoteCommitTx.GetTxId().Value.ToString())
+                                nextRemoteCommitInfo
                     }
 
                 let channel =
@@ -1847,9 +1892,8 @@ and Channel =
                         )
 
                     match htlc with
-                    | :? HTLCTimeoutTx ->
-                        (htlc :?> HTLCTimeoutTx)
-                            .Finalize(localSignature, remoteSignature)
+                    | :? HTLCTimeoutTx as timeoutTx ->
+                        timeoutTx.Finalize(localSignature, remoteSignature)
                         |> Result.map(FinalizedTx)
                         |> Result.map(box)
                     // we cannot check that htlc-success tx are spendable because we need the payment preimage; thus we only check the remote sig
@@ -1861,27 +1905,12 @@ and Channel =
                         |> Result.map(box)
                     | _ -> failwith "Unreachable!"
 
-                let! txList =
+                // This remains here just for checking the transaction signatures
+                let! _txList =
                     htlcTxsAndSignatures
                     |> List.map(checkHTLCSig)
                     |> List.sequenceResultA
                     |> expectTransactionErrors
-
-                let successTxs =
-                    txList
-                    |> List.choose(fun o ->
-                        match o with
-                        | :? HTLCSuccessTx as tx -> Some tx
-                        | _ -> None
-                    )
-
-                let finalizedTxs =
-                    txList
-                    |> List.choose(fun o ->
-                        match o with
-                        | :? FinalizedTx as tx -> Some tx
-                        | _ -> None
-                    )
 
                 let localPerCommitmentSecret =
                     channelPrivKeys.CommitmentSeed.DerivePerCommitmentSecret
@@ -1907,17 +1936,52 @@ and Channel =
                         NextPerCommitmentPoint = localNextPerCommitmentPoint
                     }
 
+                let incomingHtlcTxRemoteSigs =
+                    htlcTxsAndSignatures
+                    |> List.choose(fun (htlcTx, _localSig, remoteECDSASig) ->
+                        match htlcTx with
+                        | :? HTLCSuccessTx as successTx ->
+                            let remoteSignature =
+                                TransactionSignature(
+                                    remoteECDSASig.Value,
+                                    commitmentFormat.HtlcSigHash TxOwner.Remote
+                                )
+
+                            let htlcId = successTx.Id
+                            Some(htlcId, remoteSignature)
+                        | _ -> None
+                    )
+                    |> Map.ofList
+
+                let outgoingHtlcTxRemoteSigs =
+                    htlcTxsAndSignatures
+                    |> List.choose(fun (htlcTx, _localSig, remoteECDSASig) ->
+                        match htlcTx with
+                        | :? HTLCTimeoutTx as timeoutTx ->
+                            let remoteSignature =
+                                TransactionSignature(
+                                    remoteECDSASig.Value,
+                                    commitmentFormat.HtlcSigHash TxOwner.Remote
+                                )
+
+                            let htlcId = timeoutTx.Id
+                            Some(htlcId, remoteSignature)
+                        | _ -> None
+                    )
+                    |> Map.ofList
+
                 let localCommit1 =
                     {
                         LocalCommit.Index =
                             savedChannelState.LocalCommit.Index.NextCommitment()
+                        PerCommitmentPoint = localPerCommitmentPoint
                         Spec = spec
                         PublishableTxs =
                             {
                                 PublishableTxs.CommitTx = finalizedCommitTx
-                                HTLCTxs = finalizedTxs
                             }
-                        PendingHTLCSuccessTxs = successTxs
+                        IncomingHtlcTxRemoteSigs = incomingHtlcTxRemoteSigs
+                        OutgoingHtlcTxRemoteSigs = outgoingHtlcTxRemoteSigs
                     }
 
                 let nextSavedChannelState =
@@ -1933,6 +1997,14 @@ and Channel =
                                     (savedChannelState.RemoteChanges.ACKed
                                      @ cm.ProposedRemoteChanges)
                             }
+                        HistoricalLocalCommits =
+                            savedChannelState.HistoricalLocalCommits
+                            |> Map.add
+                                (finalizedCommitTx
+                                    .Value
+                                    .GetTxId()
+                                    .Value.ToString())
+                                localCommit1
                     }
 
                 let nextCommitments =

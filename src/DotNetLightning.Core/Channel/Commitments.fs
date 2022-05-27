@@ -37,16 +37,17 @@ type RemoteChanges =
 type PublishableTxs =
     {
         CommitTx: FinalizedTx
-        HTLCTxs: list<FinalizedTx>
     }
 
 type LocalCommit =
     {
         Index: CommitmentNumber
+        PerCommitmentPoint: PerCommitmentPoint
         Spec: CommitmentSpec
         PublishableTxs: PublishableTxs
         /// These are not redeemable on-chain until we get a corresponding preimage.
-        PendingHTLCSuccessTxs: list<HTLCSuccessTx>
+        IncomingHtlcTxRemoteSigs: Map<HTLCId, TransactionSignature>
+        OutgoingHtlcTxRemoteSigs: Map<HTLCId, TransactionSignature>
     }
 
 type RemoteCommit =

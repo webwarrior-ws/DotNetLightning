@@ -117,6 +117,14 @@ module SeqParser =
         | SequenceEndedTooEarly
         | SequenceNotReadToEnd
 
+    let parse<'SeqElement, 'Value>
+        (sequence: seq<'SeqElement>)
+        (seqParser: SeqParser<'SeqElement, 'Value>)
+        : Result<'Value, ParseToCompletionError> =
+        match seqParser.Parse sequence with
+        | None -> Error SequenceEndedTooEarly
+        | Some(_consumedSequence, value) -> Ok value
+
     let parseToCompletion<'SeqElement, 'Value>
         (sequence: seq<'SeqElement>)
         (seqParser: SeqParser<'SeqElement, 'Value>)
