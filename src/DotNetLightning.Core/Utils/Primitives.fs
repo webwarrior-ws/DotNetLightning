@@ -722,6 +722,11 @@ module Primitives =
                 ChannelFlags.AnnounceChannelMask
             else
                 0uy
+
+    type TxOwner =
+        | Local
+        | Remote
+
     (*
         https://github.com/lightning/bolts/blob/master/03-transactions.md#fee-calculation
         https://github.com/lightning/bolts/blob/master/03-transactions.md#to_local_anchor-and-to_remote_anchor-output-option_anchors
@@ -770,10 +775,13 @@ module Primitives =
             | DefaultCommitmentFormat -> feeRate
             | AnchorCommitmentFormat -> FeeRatePerKw 0u
 
-        member this.HtlcSigHash =
+        member this.HtlcSigHash(txOwmer: TxOwner) =
             match this with
             | DefaultCommitmentFormat -> SigHash.All
-            | AnchorCommitmentFormat -> SigHash.Single ||| SigHash.AnyoneCanPay
+            | AnchorCommitmentFormat ->
+                match txOwmer with
+                | Local -> SigHash.All
+                | Remote -> SigHash.Single ||| SigHash.AnyoneCanPay
 
     type ChannelType =
         | Normal

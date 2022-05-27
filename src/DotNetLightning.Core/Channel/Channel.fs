@@ -1689,6 +1689,7 @@ and Channel =
                                 channelPrivKeys
                                 remoteNextPerCommitmentPoint
                                 commitmentFormat
+                                TxOwner.Remote
                         )
                         >> fst
                         >> (fun txSig -> txSig.Signature)
@@ -1831,6 +1832,7 @@ and Channel =
                                 channelPrivKeys
                                 localPerCommitmentPoint
                                 commitmentFormat
+                                TxOwner.Local
                         )
 
                     localHtlcSigsAndHTLCTxs |> List.map(fst),
@@ -1851,7 +1853,7 @@ and Channel =
                     let remoteS =
                         TransactionSignature(
                             remoteECDSASig.Value,
-                            commitmentFormat.HtlcSigHash
+                            commitmentFormat.HtlcSigHash TxOwner.Remote
                         )
 
                     match htlc with

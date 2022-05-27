@@ -767,12 +767,13 @@ module Transactions =
         (channelPrivKeys: ChannelPrivKeys)
         (perCommitmentPoint: PerCommitmentPoint)
         (commitmentFormat: CommitmentFormat)
+        (txOwner: TxOwner)
         =
         let htlcPrivKey =
             perCommitmentPoint.DeriveHtlcPrivKey
                 channelPrivKeys.HtlcBasepointSecret
 
-        sign(htlc, htlcPrivKey.RawKey(), commitmentFormat.HtlcSigHash)
+        sign(htlc, htlcPrivKey.RawKey(), commitmentFormat.HtlcSigHash txOwner)
 
     let makeHTLCTimeoutTx
         (commitTx: Transaction)

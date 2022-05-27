@@ -371,7 +371,7 @@ let run(spec: CommitmentSpec) : (Transaction * _) =
                 commitTx,
                 local.FundingPrivKey.RawKey(),
                 false,
-                SigHash.All
+                channelType.CommitmentFormat.HtlcSigHash TxOwner.Local
             )
 
         let remoteSig, tx3 =
@@ -379,7 +379,7 @@ let run(spec: CommitmentSpec) : (Transaction * _) =
                 tx2,
                 remote.FundingPrivKey.RawKey(),
                 false,
-                SigHash.All
+                channelType.CommitmentFormat.HtlcSigHash TxOwner.Local
             )
 
         Transactions.checkSigAndAdd
@@ -509,7 +509,7 @@ let run(spec: CommitmentSpec) : (Transaction * _) =
                         tx,
                         local.PaymentPrivKey.RawKey(),
                         false,
-                        channelType.CommitmentFormat.HtlcSigHash
+                        channelType.CommitmentFormat.HtlcSigHash TxOwner.Local
                     )
 
                 let remoteSig, _tx3 =
@@ -517,7 +517,7 @@ let run(spec: CommitmentSpec) : (Transaction * _) =
                         tx2,
                         remote.PaymentPrivKey.RawKey(),
                         false,
-                        channelType.CommitmentFormat.HtlcSigHash
+                        channelType.CommitmentFormat.HtlcSigHash TxOwner.Local
                     )
                 // just checking preimage is in global list
                 let paymentPreimage =
@@ -535,7 +535,7 @@ let run(spec: CommitmentSpec) : (Transaction * _) =
                         tx,
                         local.PaymentPrivKey.RawKey(),
                         false,
-                        channelType.CommitmentFormat.HtlcSigHash
+                        channelType.CommitmentFormat.HtlcSigHash TxOwner.Local
                     )
 
                 let remoteSig, _ =
@@ -543,7 +543,7 @@ let run(spec: CommitmentSpec) : (Transaction * _) =
                         tx,
                         remote.PaymentPrivKey.RawKey(),
                         false,
-                        channelType.CommitmentFormat.HtlcSigHash
+                        channelType.CommitmentFormat.HtlcSigHash TxOwner.Local
                     )
 
                 match tx.Finalize(localSig, remoteSig) with
