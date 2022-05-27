@@ -133,7 +133,8 @@ module ClosingHelpers =
                 | None -> Error BalanceBelowDustLimit
 
             let transactionBuilder =
-                staticChannelConfig.Network.CreateTransactionBuilder()
+                Transactions.createDeterministicTransactionBuilder
+                    staticChannelConfig.Network
 
             transactionBuilder.Extensions.Add(CommitmentAnchorExtension())
 
@@ -202,9 +203,8 @@ module ClosingHelpers =
                     | None -> Error <| BalanceBelowDustLimit
 
                 let transactionBuilder =
-                    staticChannelConfig
-                        .Network
-                        .CreateTransactionBuilder()
+                    (Transactions.createDeterministicTransactionBuilder
+                        staticChannelConfig.Network)
                         .SetVersion(TxVersionNumberOfCommitmentTxs)
                         .AddKeys(localPaymentPrivKey.RawKey())
 
@@ -283,7 +283,8 @@ module ClosingHelpers =
                         true
 
                 let transactionBuilder =
-                    staticChannelConfig.Network.CreateTransactionBuilder()
+                    Transactions.createDeterministicTransactionBuilder
+                        staticChannelConfig.Network
 
                 let toLocalScriptPubKey =
                     Scripts.toLocalDelayed
@@ -422,7 +423,8 @@ module ClosingHelpers =
                         false
 
                 let transactionBuilder =
-                    staticChannelConfig.Network.CreateTransactionBuilder()
+                    Transactions.createDeterministicTransactionBuilder
+                        staticChannelConfig.Network
 
                 let toRemoteScriptPubKey =
                     match commitmentFormat with
