@@ -70,9 +70,23 @@ module ClosingHelpers =
         }
 
     type HtlcTransaction =
-        | Success of htlcId: HTLCId * spk: Script * preimage: PaymentPreimage
-        | Timeout of htlcId: HTLCId * spk: Script * blockHeight: uint32
-        | Penalty of redeemScript: Script
+        | Success of
+            htlcId: HTLCId *
+            spk: Script *
+            preimage: PaymentPreimage *
+            amount: LNMoney
+        | Timeout of
+            htlcId: HTLCId *
+            spk: Script *
+            blockHeight: uint32 *
+            amount: LNMoney
+        | Penalty of redeemScript: Script * amount: LNMoney
+
+        member this.Amount =
+            match this with
+            | Success(_, _, _, amount)
+            | Timeout(_, _, _, amount)
+            | Penalty(_, amount) -> amount
 
     let tryGetObscuredCommitmentNumber
         (fundingOutPoint: OutPoint)
@@ -294,7 +308,8 @@ module ClosingHelpers =
                                 HtlcTransaction.Success(
                                     htlcAddMsg.HTLCId,
                                     spk,
-                                    preimage
+                                    preimage,
+                                    htlcAddMsg.Amount
                                 )
                             )
                         else
@@ -326,7 +341,8 @@ module ClosingHelpers =
                             HtlcTransaction.Timeout(
                                 htlcAddMsg.HTLCId,
                                 spk,
-                                htlcAddMsg.CLTVExpiry.Value
+                                htlcAddMsg.CLTVExpiry.Value,
+                                htlcAddMsg.Amount
                             )
                         )
                     else
@@ -364,7 +380,7 @@ module ClosingHelpers =
                     localChannelPrivKeys.HtlcBasepointSecret
 
             match htlcInfo with
-            | Timeout(htlcId, _, _) ->
+            | Timeout(htlcId, _, _, _) ->
                 let htlcAddMsg =
                     remoteCommit.Spec.IncomingHTLCs |> Map.find htlcId
 
@@ -406,7 +422,7 @@ module ClosingHelpers =
                 |> ignore<TransactionBuilder>
 
                 txb, false
-            | Success(htlcId, _, preImage) ->
+            | Success(htlcId, _, preImage, _) ->
                 let htlcAddMsg =
                     remoteCommit.Spec.OutgoingHTLCs |> Map.find htlcId
 
@@ -652,7 +668,8 @@ module ClosingHelpers =
                             HtlcTransaction.Timeout(
                                 htlcAddMsg.HTLCId,
                                 spk,
-                                htlcAddMsg.CLTVExpiry.Value
+                                htlcAddMsg.CLTVExpiry.Value,
+                                htlcAddMsg.Amount
                             )
                         )
                     else
@@ -687,7 +704,8 @@ module ClosingHelpers =
                                 HtlcTransaction.Success(
                                     htlcAddMsg.HTLCId,
                                     spk,
-                                    preimage
+                                    preimage,
+                                    htlcAddMsg.Amount
                                 )
                             )
                         else
@@ -732,7 +750,7 @@ module ClosingHelpers =
                     localCommitmentPubKeys.DelayedPaymentPubKey
 
             match htlcInfo with
-            | Timeout(htlcId, _, _) ->
+            | Timeout(htlcId, _, _, _) ->
                 let htlcAddMsg =
                     localCommit.Spec.OutgoingHTLCs |> Map.find htlcId
 
@@ -782,7 +800,7 @@ module ClosingHelpers =
                 |> ignore<TransactionBuilder>
 
                 txb, true
-            | Success(htlcId, _, preImage) ->
+            | Success(htlcId, _, preImage, _) ->
                 let htlcAddMsg =
                     localCommit.Spec.IncomingHTLCs |> Map.find htlcId
 
@@ -1223,7 +1241,12 @@ module ClosingHelpers =
                             )
 
                         if outputExistsInCommitmentTx then
-                            Some(HtlcTransaction.Penalty redeem)
+                            Some(
+                                HtlcTransaction.Penalty(
+                                    redeem,
+                                    htlcAddMsg.Amount
+                                )
+                            )
                         else
                             None
                     )
@@ -1250,7 +1273,12 @@ module ClosingHelpers =
                             )
 
                         if outputExistsInCommitmentTx then
-                            Some(HtlcTransaction.Penalty redeem)
+                            Some(
+                                HtlcTransaction.Penalty(
+                                    redeem,
+                                    htlcAddMsg.Amount
+                                )
+                            )
                         else
                             None
                     )
@@ -1303,7 +1331,7 @@ module ClosingHelpers =
                         localChannelPrivKeys.RevocationBasepointSecret
 
                 match htlcInfo with
-                | Penalty redeemScript ->
+                | Penalty(redeemScript, _) ->
                     let spk = redeemScript.WitHash.ScriptPubKey
                     let txIn = findScriptPubKey closingTx spk
 
