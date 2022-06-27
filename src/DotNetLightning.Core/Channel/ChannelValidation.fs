@@ -131,6 +131,7 @@ module internal ChannelHelpers =
         (localIsFunder: bool)
         (localChannelPubKeys: ChannelPubKeys)
         (remoteChannelPubKeys: ChannelPubKeys)
+        (channelType: ChannelType)
         (localParams: LocalParams)
         (remoteParams: RemoteParams)
         (fundingAmount: Money)
@@ -192,11 +193,16 @@ module internal ChannelHelpers =
                     fundingAmount
 
             let localPubKeysForLocalCommitment =
-                localPerCommitmentPoint.DeriveCommitmentPubKeys localChannelKeys
+                localPerCommitmentPoint.DeriveCommitmentPubKeys
+                    localChannelKeys
+                    channelType
+                    false
 
             let remotePubKeysForLocalCommitment =
                 localPerCommitmentPoint.DeriveCommitmentPubKeys
                     remoteChannelPubKeys
+                    channelType
+                    true
 
             let localCommitTx =
                 Transactions.makeCommitTx
@@ -218,10 +224,14 @@ module internal ChannelHelpers =
             let localPubKeysForRemoteCommitment =
                 remotePerCommitmentPoint.DeriveCommitmentPubKeys
                     localChannelKeys
+                    channelType
+                    true
 
             let remotePubKeysForRemoteCommitment =
                 remotePerCommitmentPoint.DeriveCommitmentPubKeys
                     remoteChannelPubKeys
+                    channelType
+                    false
 
             let remoteCommitTx =
                 Transactions.makeCommitTx

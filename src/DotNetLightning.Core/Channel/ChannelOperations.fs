@@ -121,6 +121,13 @@ type RemoteParams =
             Features = remoteInit.Features
         }
 
+    member this.ObtainChannelType(localParams: LocalParams) =
+        if this.Features.HasFeature Feature.OptionStaticRemoteKey
+           && localParams.Features.HasFeature Feature.OptionStaticRemoteKey then
+            ChannelType.StaticRemoteKey
+        else
+            ChannelType.Normal
+
 /// Channel config which is static, ie. config parameters which are established
 /// during the channel handshake and persist unchagned through the lifetime of
 /// the channel.
@@ -137,6 +144,7 @@ type StaticChannelConfig =
         LocalParams: LocalParams
         RemoteParams: RemoteParams
         RemoteChannelPubKeys: ChannelPubKeys
+        Type: ChannelType
     }
 
     member this.ChannelId() : ChannelId =

@@ -24,6 +24,8 @@ let testList =
             <| fun _ ->
                 let rand = Random()
 
+                let channelType = ChannelType.Normal
+
                 let localNodeMasterPrivKey =
                     let extKey = ExtKey()
                     NodeMasterPrivKey extKey
@@ -87,10 +89,14 @@ let testList =
                 let localCommitmentPubKeys =
                     perCommitmentPoint.DeriveCommitmentPubKeys
                         localChannelPubKeys
+                        channelType
+                        false
 
                 let remoteCommitmentPubKeys =
                     perCommitmentPoint.DeriveCommitmentPubKeys
                         remoteChannelPubKeys
+                        channelType
+                        true
 
                 let localParams: LocalParams =
                     {
@@ -142,6 +148,7 @@ let testList =
 
                 let staticLocalChannelConfig: StaticChannelConfig =
                     {
+                        Type = channelType
                         FundingScriptCoin = fundingScriptCoin
                         AnnounceChannel = false
                         RemoteNodeId = remoteNodeMasterPrivKey.NodeId()
@@ -271,6 +278,7 @@ let testList =
 
                 let staticRemoteChannelConfig: StaticChannelConfig =
                     {
+                        Type = channelType
                         FundingScriptCoin = fundingScriptCoin
                         AnnounceChannel = false
                         RemoteNodeId = localNodeMasterPrivKey.NodeId()
@@ -443,6 +451,8 @@ let testList =
             <| fun _ ->
                 let rand = Random()
 
+                let channelType = ChannelType.Normal
+
                 let localNodeMasterPrivKey =
                     let extKey = ExtKey()
                     NodeMasterPrivKey extKey
@@ -569,10 +579,14 @@ let testList =
                     let localCommitmentPubKeys =
                         perCommitmentPoint.DeriveCommitmentPubKeys
                             localChannelPubKeys
+                            channelType
+                            false
 
                     let remoteCommitmentPubKeys =
                         perCommitmentPoint.DeriveCommitmentPubKeys
                             remoteChannelPubKeys
+                            channelType
+                            true
 
                     let unsignedCommitmentTx =
                         makeCommitTx
@@ -618,10 +632,14 @@ let testList =
                     let remoteRemoteCommitmentPubKeys =
                         remotePerCommitmentPoint.DeriveCommitmentPubKeys
                             localChannelPubKeys
+                            channelType
+                            true
 
                     let remoteLocalCommitmentPubKeys =
                         remotePerCommitmentPoint.DeriveCommitmentPubKeys
                             remoteChannelPubKeys
+                            channelType
+                            false
 
                     let unsignedCommitmentTx =
                         makeCommitTx
@@ -697,6 +715,7 @@ let testList =
 
                 let staticRemoteChannelConfig: StaticChannelConfig =
                     {
+                        Type = ChannelType.Normal
                         FundingScriptCoin = fundingScriptCoin
                         AnnounceChannel = false
                         RemoteNodeId = localNodeMasterPrivKey.NodeId()
@@ -813,6 +832,8 @@ let testList =
             <| fun _ ->
                 let rand = Random()
 
+                let channelType = ChannelType.Normal
+
                 let localNodeMasterPrivKey =
                     let extKey = ExtKey()
                     NodeMasterPrivKey extKey
@@ -873,10 +894,14 @@ let testList =
                 let localCommitmentPubKeys =
                     perCommitmentPoint.DeriveCommitmentPubKeys
                         localChannelPubKeys
+                        channelType
+                        false
 
                 let remoteCommitmentPubKeys =
                     perCommitmentPoint.DeriveCommitmentPubKeys
                         remoteChannelPubKeys
+                        channelType
+                        true
 
                 let localParams: LocalParams =
                     {
@@ -975,10 +1000,14 @@ let testList =
                     let localCommitmentPubKeys =
                         perCommitmentPoint.DeriveCommitmentPubKeys
                             localChannelPubKeys
+                            channelType
+                            true
 
                     let remoteCommitmentPubKeys =
                         perCommitmentPoint.DeriveCommitmentPubKeys
                             remoteChannelPubKeys
+                            channelType
+                            false
 
                     let unsignedCommitmentTx =
                         makeCommitTx
@@ -1061,6 +1090,7 @@ let testList =
 
                 let staticRemoteChannelConfig: StaticChannelConfig =
                     {
+                        Type = ChannelType.Normal
                         FundingScriptCoin = fundingScriptCoin
                         AnnounceChannel = false
                         RemoteNodeId = localNodeMasterPrivKey.NodeId()

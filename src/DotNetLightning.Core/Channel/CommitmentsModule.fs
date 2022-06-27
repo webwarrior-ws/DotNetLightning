@@ -40,10 +40,14 @@ module internal Commitments =
             let localCommitmentPubKeys =
                 remotePerCommitmentPoint.DeriveCommitmentPubKeys
                     localChannelPubKeys
+                    staticChannelConfig.Type
+                    true
 
             let remoteCommitmentPubKeys =
                 remotePerCommitmentPoint.DeriveCommitmentPubKeys
                     staticChannelConfig.RemoteChannelPubKeys
+                    staticChannelConfig.Type
+                    false
 
             let commitTx =
                 Transactions.makeCommitTx
@@ -88,10 +92,14 @@ module internal Commitments =
             let localCommitmentPubKeys =
                 localPerCommitmentPoint.DeriveCommitmentPubKeys
                     localChannelPubKeys
+                    staticChannelConfig.Type
+                    false
 
             let remoteCommitmentPubKeys =
                 localPerCommitmentPoint.DeriveCommitmentPubKeys
                     staticChannelConfig.RemoteChannelPubKeys
+                    staticChannelConfig.Type
+                    true
 
             let commitTx =
                 Transactions.makeCommitTx

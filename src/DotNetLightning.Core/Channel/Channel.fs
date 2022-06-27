@@ -120,6 +120,9 @@ and ChannelWaitingForFundingCreated =
         (msg: FundingCreatedMsg)
         : Result<FundingSignedMsg * Channel, ChannelError> =
         result {
+            let channelType =
+                this.RemoteParams.ObtainChannelType this.LocalParams
+
             let! (localSpec, localCommitTx, remoteSpec, remoteCommitTx) =
                 let firstPerCommitmentPoint =
                     this.ChannelPrivKeys.CommitmentSeed.DerivePerCommitmentPoint
@@ -129,6 +132,7 @@ and ChannelWaitingForFundingCreated =
                     false
                     (this.ChannelPrivKeys.ToChannelPubKeys())
                     this.RemoteChannelPubKeys
+                    channelType
                     this.LocalParams
                     this.RemoteParams
                     this.FundingSatoshis
@@ -196,6 +200,7 @@ and ChannelWaitingForFundingCreated =
                     LocalParams = this.LocalParams
                     RemoteParams = this.RemoteParams
                     RemoteChannelPubKeys = this.RemoteChannelPubKeys
+                    Type = channelType
                 }
 
             let channelId = staticChannelConfig.ChannelId()
@@ -291,11 +296,15 @@ and ChannelWaitingForFundingTx =
             let commitmentSeed = this.ChannelPrivKeys.CommitmentSeed
             let fundingTxId = fundingTx.Value.GetTxId()
 
+            let channelType =
+                this.RemoteParams.ObtainChannelType this.LocalParams
+
             let! (_localSpec, localCommitTx, remoteSpec, remoteCommitTx) =
                 ChannelHelpers.makeFirstCommitTxs
                     true
                     (this.ChannelPrivKeys.ToChannelPubKeys())
                     this.RemoteChannelPubKeys
+                    channelType
                     localParams
                     remoteParams
                     this.FundingSatoshis
@@ -348,6 +357,7 @@ and ChannelWaitingForFundingTx =
                             LocalParams = localParams
                             RemoteParams = remoteParams
                             RemoteChannelPubKeys = this.RemoteChannelPubKeys
+                            Type = channelType
                         }
                     ChannelOptions = this.ChannelOptions
                     ChannelPrivKeys = this.ChannelPrivKeys

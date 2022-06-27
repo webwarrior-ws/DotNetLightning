@@ -152,6 +152,7 @@ let tests =
                             LocalParams = dummyLocalParams
                             RemoteParams = remoteParams
                             RemoteChannelPubKeys = dummyChannelPubKeys
+                            Type = ChannelType.Normal
                         }
 
                     {

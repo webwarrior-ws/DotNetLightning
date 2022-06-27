@@ -722,3 +722,7 @@ module Primitives =
                 ChannelFlags.AnnounceChannelMask
             else
                 0uy
+
+    type ChannelType =
+        | Normal
+        | StaticRemoteKey

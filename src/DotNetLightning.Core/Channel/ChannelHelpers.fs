@@ -116,10 +116,14 @@ module ClosingHelpers =
                 let localPaymentPrivKey =
                     remotePerCommitmentPoint.DerivePaymentPrivKey
                         localChannelPrivKeys.PaymentBasepointSecret
+                        staticChannelConfig.Type
+                        true
 
                 let localCommitmentPubKeys =
                     remotePerCommitmentPoint.DeriveCommitmentPubKeys
                         localChannelPubKeys
+                        staticChannelConfig.Type
+                        true
 
                 let toRemoteScriptPubKey =
                     localCommitmentPubKeys
@@ -191,10 +195,14 @@ module ClosingHelpers =
                 let localCommitmentPubKeys =
                     perCommitmentPoint.DeriveCommitmentPubKeys
                         localChannelPubKeys
+                        staticChannelConfig.Type
+                        false
 
                 let remoteCommitmentPubKeys =
                     perCommitmentPoint.DeriveCommitmentPubKeys
                         remoteChannelPubKeys
+                        staticChannelConfig.Type
+                        true
 
                 let transactionBuilder =
                     staticChannelConfig.Network.CreateTransactionBuilder()
@@ -318,10 +326,14 @@ module ClosingHelpers =
                 let localCommitmentPubKeys =
                     perCommitmentPoint.DeriveCommitmentPubKeys
                         localChannelPubKeys
+                        staticChannelConfig.Type
+                        true
 
                 let remoteCommitmentPubKeys =
                     perCommitmentPoint.DeriveCommitmentPubKeys
                         remoteChannelPubKeys
+                        staticChannelConfig.Type
+                        false
 
                 let transactionBuilder =
                     staticChannelConfig.Network.CreateTransactionBuilder()
@@ -353,6 +365,8 @@ module ClosingHelpers =
                     let localPaymentPrivKey =
                         perCommitmentPoint.DerivePaymentPrivKey
                             localChannelPrivKeys.PaymentBasepointSecret
+                            staticChannelConfig.Type
+                            true
 
                     transactionBuilder.SetVersion TxVersionNumberOfCommitmentTxs
                     |> ignore<TransactionBuilder>
@@ -423,10 +437,14 @@ module ClosingHelpers =
             let localCommitmentPubKeys =
                 remotePerCommitmentPoint.DeriveCommitmentPubKeys
                     localChannelPubKeys
+                    staticChannelConfig.Type
+                    true
 
             let remoteCommitmentPubKeys =
                 remotePerCommitmentPoint.DeriveCommitmentPubKeys
                     staticChannelConfig.RemoteChannelPubKeys
+                    staticChannelConfig.Type
+                    false
 
             //Reconstruct the remote commitment tx for the given remoteCommit
             let commitTx =

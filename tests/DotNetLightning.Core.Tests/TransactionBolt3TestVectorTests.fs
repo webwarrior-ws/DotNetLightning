@@ -97,7 +97,10 @@ let getLocal() : LocalConfig =
         FundingPrivKey = fundingPrivKey
         PerCommitmentPoint = localPerCommitmentPoint
         PaymentPrivKey =
-            localPerCommitmentPoint.DerivePaymentPrivKey paymentBasepointSecret
+            localPerCommitmentPoint.DerivePaymentPrivKey
+                paymentBasepointSecret
+                ChannelType.Normal
+                false
         DelayedPaymentPrivKey =
             localPerCommitmentPoint.DeriveDelayedPaymentPrivKey
                 delayedPaymentBasepointSecret
@@ -163,7 +166,10 @@ let getRemote() : RemoteConfig =
         RevocationBasepoint = revocationBasepoint
         FundingPrivKey = fundingPrivKey
         PaymentPrivKey =
-            localPerCommitmentPoint.DerivePaymentPrivKey paymentBasepointSecret
+            localPerCommitmentPoint.DerivePaymentPrivKey
+                paymentBasepointSecret
+                ChannelType.Normal
+                true
         PerCommitmentPoint = perCommitmentPoint
     }
 

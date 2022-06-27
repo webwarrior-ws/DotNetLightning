@@ -115,14 +115,26 @@ module KeyExtensions =
 
         member this.DerivePaymentPrivKey
             (paymentBasepointSecret: PaymentBasepointSecret)
+            (channelType: ChannelType)
+            (isRemoteKey: bool)
             : PaymentPrivKey =
             PaymentPrivKey
-            <| this.DerivePrivKey(paymentBasepointSecret.RawKey())
+            <| match channelType, isRemoteKey with
+               | ChannelType.StaticRemoteKey, true ->
+                   paymentBasepointSecret.RawKey()
+               | _ -> this.DerivePrivKey(paymentBasepointSecret.RawKey())
 
         member this.DerivePaymentPubKey
             (paymentBasepoint: PaymentBasepoint)
+            (channelType: ChannelType)
+            (isRemoteKey: bool)
             : PaymentPubKey =
-            PaymentPubKey <| this.DerivePubKey(paymentBasepoint.RawPubKey())
+            PaymentPubKey
+            <| match channelType, isRemoteKey with
+               | ChannelType.StaticRemoteKey, true ->
+                   paymentBasepoint.RawPubKey()
+               | _ -> this.DerivePubKey(paymentBasepoint.RawPubKey())
+
 
         member this.DeriveDelayedPaymentPrivKey
             (delayedPaymentBasepointSecret: DelayedPaymentBasepointSecret)
@@ -171,13 +183,18 @@ module KeyExtensions =
 
         member this.DeriveCommitmentPubKeys
             (channelPubKeys: ChannelPubKeys)
+            (channelType: ChannelType)
+            (isRemoteKey: bool)
             : CommitmentPubKeys =
             {
                 RevocationPubKey =
                     this.DeriveRevocationPubKey
                         channelPubKeys.RevocationBasepoint
                 PaymentPubKey =
-                    this.DerivePaymentPubKey channelPubKeys.PaymentBasepoint
+                    this.DerivePaymentPubKey
+                        channelPubKeys.PaymentBasepoint
+                        channelType
+                        isRemoteKey
                 DelayedPaymentPubKey =
                     this.DeriveDelayedPaymentPubKey
                         channelPubKeys.DelayedPaymentBasepoint
