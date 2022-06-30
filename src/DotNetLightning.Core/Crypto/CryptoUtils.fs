@@ -48,6 +48,7 @@ type CryptoError =
     | FailedToParseErrorPacket of
         packet: array<byte> *
         sharedSecrets: list<(array<byte> * PubKey)>
+    | InvalidPayloadLength
 
     member this.Message =
         match this with
@@ -61,6 +62,7 @@ type CryptoError =
             sprintf "Invalid public key: %s" (publicKeyBytes.ToHexString())
         | InvalidMessageLength length ->
             sprintf "Invalid message length (%i)" length
+        | InvalidPayloadLength -> "Invalid payload length"
         | FailedToParseErrorPacket _ -> "failed to parse error packet."
 
 module Secret =

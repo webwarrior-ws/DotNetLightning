@@ -6,6 +6,7 @@ open NBitcoin
 open DotNetLightning.Utils
 open DotNetLightning.Serialization
 open DotNetLightning.Serialization.Msgs
+open DotNetLightning.Core.Utils.Extensions
 
 open ResultUtils
 open ResultUtils.Portability
@@ -162,6 +163,15 @@ module Sphinx =
 
         fillInner (Array.zeroCreate fillerSize) 0
 
+    let peekPayloadLength(bytes: array<byte>) =
+        result {
+            match bytes |> Array.head with
+            | VERSION -> return MacLength + PayloadLength
+            | _ ->
+                let! length, _ = bytes.TryPopVarInt()
+                return int length + MacLength + length.ToVarInt().Length
+        }
+
     type ParsedPacket =
         {
             Payload: array<byte>
@@ -205,44 +215,49 @@ module Sphinx =
                                 seq
                                     [
                                         packet.HopData
-                                        zeros(PayloadLength + MacLength)
+                                        zeros(packet.HopData.Length)
                                     ]
                             )
 
-                        let dataLength =
-                            PayloadLength
-                            + MacLength
-                            + MaxHops * (PayloadLength + MacLength)
+                        let dataLength = packet.HopData.Length * 2
 
                         xor(d, generateStream(rho, dataLength))
 
-                    let payload = bin.[0 .. PayloadLength - 1]
+                    match peekPayloadLength bin with
+                    | Ok perHopPayloadLength ->
+                        let payload =
+                            bin.[.. perHopPayloadLength - MacLength - 1]
 
-                    let hmac =
-                        bin.[PayloadLength .. PayloadLength + MacLength - 1]
-                        |> uint256
+                        let hmac =
+                            bin.[perHopPayloadLength - MacLength .. perHopPayloadLength
+                                                                    - 1]
+                            |> uint256
 
-                    let nextRouteInfo = bin.[PayloadLength + MacLength ..]
+                        let nextRouteInfo =
+                            bin
+                            |> Array.skip perHopPayloadLength
+                            |> Array.take packet.HopData.Length
 
-                    let nextPubKey =
-                        use sharedSecret = new Key(ss)
+                        let nextPubKey =
+                            use sharedSecret = new Key(ss)
 
-                        blind
-                            publicKey
-                            (computeBlindingFactor publicKey sharedSecret)
+                            blind
+                                publicKey
+                                (computeBlindingFactor publicKey sharedSecret)
 
-                    {
-                        ParsedPacket.Payload = payload
-                        NextPacket =
-                            {
-                                Version = VERSION
-                                PublicKey = nextPubKey.ToBytes()
-                                HMAC = hmac
-                                HopData = nextRouteInfo
-                            }
-                        SharedSecret = ss
-                    }
-                    |> Ok
+                        {
+                            ParsedPacket.Payload = payload
+                            NextPacket =
+                                {
+                                    Version = VERSION
+                                    PublicKey = nextPubKey.ToBytes()
+                                    HMAC = hmac
+                                    HopData = nextRouteInfo
+                                }
+                            SharedSecret = ss
+                        }
+                        |> Ok
+                    | Error _ -> CryptoError.InvalidPayloadLength |> Error
 
     /// Compute the next packet from the current packet and node parameters.
     /// Packets are constructed in reverse order:
