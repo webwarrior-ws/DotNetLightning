@@ -413,25 +413,6 @@ module KeyExtensions =
                     psbt
                     fundingPubKey
 
-        member this.SignHtlcTx
-            (psbt: PSBT)
-            (perCommitmentPoint: PerCommitmentPoint)
-            : TransactionSignature * PSBT =
-            let htlcPrivKey =
-                perCommitmentPoint.DeriveHtlcPrivKey this.HtlcBasepointSecret
-
-            let htlcPubKey = htlcPrivKey.HtlcPubKey()
-            psbt.SignWithKeys(htlcPrivKey.RawKey()) |> ignore
-
-            match psbt.GetMatchingSig(htlcPubKey.RawPubKey()) with
-            | Some signature -> (signature, psbt)
-            | None ->
-                failwithf
-                    "failed to get htlc signature for %A. with htlc pubkey (%A) and perCommitmentPoint (%A)"
-                    psbt
-                    htlcPubKey
-                    perCommitmentPoint
-
     /// This is the node-wide master key which is also used for
     /// transport-level encryption. The channel's keys are derived from
     /// this via BIP32 key derivation where `channelIndex` is the child

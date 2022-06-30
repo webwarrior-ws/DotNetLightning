@@ -1823,23 +1823,20 @@ and Channel =
 
                 do! Commitments.checkSignatureCountMismatch sortedHTLCTXs msg
 
-                let _localHTLCSigs, sortedHTLCTXs =
-                    let localHtlcSigsAndHTLCTxs =
-                        sortedHTLCTXs
-                        |> List.map(fun htlc ->
-                            signHtlcTx
-                                htlc
-                                channelPrivKeys
-                                localPerCommitmentPoint
-                                commitmentFormat
-                                TxOwner.Local
-                        )
-
-                    localHtlcSigsAndHTLCTxs |> List.map(fst),
-                    localHtlcSigsAndHTLCTxs
-                    |> List.map(snd)
-                    |> Seq.cast<IHTLCTx>
-                    |> List.ofSeq
+                let htlcTxsAndSignatures =
+                    sortedHTLCTXs
+                    |> List.zip(msg.HTLCSignatures)
+                    |> List.map(fun (remoteSig, htlc) ->
+                        htlc,
+                        signHtlcTx
+                            htlc
+                            channelPrivKeys
+                            localPerCommitmentPoint
+                            commitmentFormat
+                            TxOwner.Local
+                        |> fst,
+                        remoteSig
+                    )
 
                 let remoteHTLCPubKey =
                     localPerCommitmentPoint.DeriveHtlcPubKey
@@ -1848,9 +1845,10 @@ and Channel =
                 let checkHTLCSig
                     (
                         htlc: IHTLCTx,
+                        localSignature: TransactionSignature,
                         remoteECDSASig: LNECDSASignature
                     ) : Result<_, _> =
-                    let remoteS =
+                    let remoteSignature =
                         TransactionSignature(
                             remoteECDSASig.Value,
                             commitmentFormat.HtlcSigHash TxOwner.Remote
@@ -1858,25 +1856,21 @@ and Channel =
 
                     match htlc with
                     | :? HTLCTimeoutTx ->
-                        (Transactions.checkTxFinalized
-                            (htlc.Value)
-                            (0)
-                            (seq
-                                [
-                                    (remoteHTLCPubKey.RawPubKey(), remoteS)
-                                ]))
+                        (htlc :?> HTLCTimeoutTx)
+                            .Finalize(localSignature, remoteSignature)
+                        |> Result.map(FinalizedTx)
                         |> Result.map(box)
                     // we cannot check that htlc-success tx are spendable because we need the payment preimage; thus we only check the remote sig
                     | :? HTLCSuccessTx ->
                         (Transactions.checkSigAndAdd
-                            (htlc)
-                            (remoteS)
+                            htlc
+                            remoteSignature
                             (remoteHTLCPubKey.RawPubKey()))
                         |> Result.map(box)
                     | _ -> failwith "Unreachable!"
 
                 let! txList =
-                    List.zip sortedHTLCTXs msg.HTLCSignatures
+                    htlcTxsAndSignatures
                     |> List.map(checkHTLCSig)
                     |> List.sequenceResultA
                     |> expectTransactionErrors
