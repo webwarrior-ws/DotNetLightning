@@ -1,0 +1,2250 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>PaymentRequest (DotNetLightning)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="author" content="joemphilips">
+
+    <link rel="stylesheet" id="theme_link" href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/4.6.0/materia/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
+
+    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+    <link rel="shortcut icon" type="image/x-icon" href="img/favicon.ico">
+    <link type="text/css" rel="stylesheet" href="https://joemphilips.github.io/DotNetLightning/content/navbar-fixed-left.css" />
+    <link type="text/css" rel="stylesheet" href="https://joemphilips.github.io/DotNetLightning/content/fsdocs-default.css" />
+    <link type="text/css" rel="stylesheet" href="https://joemphilips.github.io/DotNetLightning/content/fsdocs-custom.css" />
+    <script type="text/javascript" src="https://joemphilips.github.io/DotNetLightning/content/fsdocs-tips.js"></script>
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <!-- BEGIN SEARCH BOX: this adds support for the search box -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.css" />
+    <!-- END SEARCH BOX: this adds support for the search box -->
+    
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-md navbar-light bg-secondary fixed-left" id="fsdocs-nav">
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse navbar-nav-scroll" id="navbarsExampleDefault">
+            <a href="https://joemphilips.github.io/DotNetLightning/"><img id="fsdocs-logo" src="https://joemphilips.github.io/DotNetLightning/img/logo.png" /></a>
+            <!-- BEGIN SEARCH BOX: this adds support for the search box -->
+            <div id="header">
+                <div class="searchbox" id="fsdocs-searchbox">
+                    <label for="search-by">
+                        <i class="fas fa-search"></i>
+                    </label>
+                    <input data-search-input="" id="search-by" type="search" placeholder="Search..." />
+                    <span data-search-clear="">
+                        <i class="fas fa-times"></i>
+                    </span>
+                </div>
+            </div>
+
+            <!-- END SEARCH BOX: this adds support for the search box -->
+            <ul class="navbar-nav">
+                <li class="nav-header">Links</li>
+                <li class="nav-item" id="fsdocs-license-link"><a class="nav-link" href="https://github.com/joemphilips/DotNetLightning/blob/master/LICENSE.txt">License</a></li>
+                <li class="nav-item" id="fsdocs-release-notes-link"><a class="nav-link" href="https://github.com/joemphilips/DotNetLightning/releases">Release Notes</a></li>
+                <li class="nav-item" id="fsdocs-repository-link"><a class="nav-link" href="https://github.com/joemphilips/DotNetLightning/">Source Repository</a></li>
+                <li class="nav-header">
+  Overview
+</li>             
+<li class="nav-item">
+  <a class="nav-link" href="https://joemphilips.github.io/DotNetLightning/features/dnl-namespace.html">
+    DotNetLightning.* namespaces
+  </a>
+</li>             
+<li class="nav-item">
+  <a class="nav-link" href="https://joemphilips.github.io/DotNetLightning/features/other_namespaces.html">
+    Other namespaces
+  </a>
+</li>             
+<li class="nav-header">
+  c-lightning
+</li>             
+<li class="nav-item">
+  <a class="nav-link" href="https://joemphilips.github.io/DotNetLightning/c-lightning/overview.html">
+    Overview
+  </a>
+</li>             
+<li class="nav-header">
+  examples
+</li>             
+<li class="nav-item">
+  <a class="nav-link" href="https://joemphilips.github.io/DotNetLightning/examples/cln_rpc_example.html">
+    calling c-lightning rpc
+  </a>
+</li>
+                <li class="nav-header">
+  API Reference
+</li>             
+<li class="nav-item">
+  <a class="nav-link" href="https://joemphilips.github.io/DotNetLightning/reference/index.html">
+    All Namespaces
+  </a>
+</li>
+            </ul>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="masthead">
+            <h3 class="muted"><a href="https://joemphilips.github.io/DotNetLightning/">DotNetLightning</a></h3>
+        </div>
+        <hr />
+        <div class="container" id="fsdocs-content">
+            <div>
+  <h2>
+    PaymentRequest Type
+  </h2>
+  <dl class="fsdocs-metadata">
+    <dt>
+      Namespace: 
+      <a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment.html">
+        DotNetLightning.Payment
+      </a>
+    </dt>
+    <dt>
+      Assembly: DotNetLightning.Core.dll
+    </dt>
+    <dt>
+      Base Type: 
+      <code>obj</code>
+    </dt>
+    <dt>
+      All Interfaces: 
+      <code><span><a href="https://docs.microsoft.com/dotnet/api/system.iequatable-1">IEquatable</a>&lt;<a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-paymentrequest.html">PaymentRequest</a>&gt;</span></code>
+    </dt>
+  </dl>
+  <div class="fsdocs-xmldoc">
+    <div>
+      <p class="fsdocs-summary">
+        <p><a href="https://github.com/lightning/bolts/blob/master/11-payment-encoding.md">bolt11</a> invoice.</p>
+
+
+      </p>
+    </div>
+  </div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div>
+    <h3>
+      Record fields
+    </h3>
+    <table class="table outer-list fsdocs-member-list">
+      <thead>
+        <tr>
+          <td class="fsdocs-member-list-header">
+            Record Field
+          </td>
+          <td class="fsdocs-member-list-header">
+            Description
+          </td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1714', 1714)" onmouseover="showTip(event, '1714', 1714)">
+                <p>
+                  <a id="Amount">
+                    <a href="#Amount">
+                      <code>Amount</code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1714">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code>Amount</code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Field type: 
+                    <code><span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-lnmoney.html">LNMoney</a>&#32;option</span></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Field type: 
+                </span>
+                <code><span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-lnmoney.html">LNMoney</a>&#32;option</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1715', 1715)" onmouseover="showTip(event, '1715', 1715)">
+                <p>
+                  <a id="NodeId">
+                    <a href="#NodeId">
+                      <code>NodeId</code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1715">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code>NodeId</code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Field type: 
+                    <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-primitives-nodeid.html">NodeId</a></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Field type: 
+                </span>
+                <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-primitives-nodeid.html">NodeId</a></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1716', 1716)" onmouseover="showTip(event, '1716', 1716)">
+                <p>
+                  <a id="Prefix">
+                    <a href="#Prefix">
+                      <code>Prefix</code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1716">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code>Prefix</code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Field type: 
+                    <code>string</code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Field type: 
+                </span>
+                <code>string</code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1717', 1717)" onmouseover="showTip(event, '1717', 1717)">
+                <p>
+                  <a id="Signature">
+                    <a href="#Signature">
+                      <code>Signature</code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1717">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code>Signature</code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Field type: 
+                    <code><span><span>(<span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-primitives-lnecdsasignature.html">LNECDSASignature</a>&#32;*&#32;byte</span>)</span>&#32;option</span></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Field type: 
+                </span>
+                <code><span><span>(<span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-primitives-lnecdsasignature.html">LNECDSASignature</a>&#32;*&#32;byte</span>)</span>&#32;option</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1718', 1718)" onmouseover="showTip(event, '1718', 1718)">
+                <p>
+                  <a id="Tags">
+                    <a href="#Tags">
+                      <code>Tags</code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1718">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code>Tags</code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Field type: 
+                    <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-taggedfields.html">TaggedFields</a></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Field type: 
+                </span>
+                <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-taggedfields.html">TaggedFields</a></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1719', 1719)" onmouseover="showTip(event, '1719', 1719)">
+                <p>
+                  <a id="Timestamp">
+                    <a href="#Timestamp">
+                      <code>Timestamp</code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1719">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code>Timestamp</code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Field type: 
+                    <code><a href="https://docs.microsoft.com/dotnet/api/system.datetimeoffset">DateTimeOffset</a></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Field type: 
+                </span>
+                <code><a href="https://docs.microsoft.com/dotnet/api/system.datetimeoffset">DateTimeOffset</a></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div></div>
+  <div></div>
+  <div>
+    <h3>
+      Instance members
+    </h3>
+    <table class="table outer-list fsdocs-member-list">
+      <thead>
+        <tr>
+          <td class="fsdocs-member-list-header">
+            Instance member
+          </td>
+          <td class="fsdocs-member-list-header">
+            Description
+          </td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1720', 1720)" onmouseover="showTip(event, '1720', 1720)">
+                <p>
+                  <a id="AmountValue">
+                    <a href="#AmountValue">
+                      <code><span>this.AmountValue</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1720">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.AmountValue</span></code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-lnmoney.html">LNMoney</a>&#32;option</span></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:P:DotNetLightning.Payment.PaymentRequest.AmountValue`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:DotNetLightning.Payment.PaymentRequest.AmountValue\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-lnmoney.html">LNMoney</a>&#32;option</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1721', 1721)" onmouseover="showTip(event, '1721', 1721)">
+                <p>
+                  <a id="Description">
+                    <a href="#Description">
+                      <code><span>this.Description</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1721">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.Description</span></code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span><a href="https://fsharp.github.io/fsharp-core-docs/reference/fsharp-core-fsharpchoice-2">Choice</a>&lt;<span>string,&#32;<a href="https://docs.microsoft.com/dotnet/api/nbitcoin.uint256">uint256</a></span>&gt;</span></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:P:DotNetLightning.Payment.PaymentRequest.Description`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:DotNetLightning.Payment.PaymentRequest.Description\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span><a href="https://fsharp.github.io/fsharp-core-docs/reference/fsharp-core-fsharpchoice-2">Choice</a>&lt;<span>string,&#32;<a href="https://docs.microsoft.com/dotnet/api/nbitcoin.uint256">uint256</a></span>&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1722', 1722)" onmouseover="showTip(event, '1722', 1722)">
+                <p>
+                  <a id="Expiry">
+                    <a href="#Expiry">
+                      <code><span>this.Expiry</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1722">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.Expiry</span></code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><a href="https://docs.microsoft.com/dotnet/api/system.datetimeoffset">DateTimeOffset</a></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:P:DotNetLightning.Payment.PaymentRequest.Expiry`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:DotNetLightning.Payment.PaymentRequest.Expiry\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                <p>absolute expiry date.</p>
+
+
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><a href="https://docs.microsoft.com/dotnet/api/system.datetimeoffset">DateTimeOffset</a></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1723', 1723)" onmouseover="showTip(event, '1723', 1723)">
+                <p>
+                  <a id="FallbackAddresses">
+                    <a href="#FallbackAddresses">
+                      <code><span>this.FallbackAddresses</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1723">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.FallbackAddresses</span></code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span>string&#32;list</span></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:P:DotNetLightning.Payment.PaymentRequest.FallbackAddresses`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:DotNetLightning.Payment.PaymentRequest.FallbackAddresses\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span>string&#32;list</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1724', 1724)" onmouseover="showTip(event, '1724', 1724)">
+                <p>
+                  <a id="Features">
+                    <a href="#Features">
+                      <code><span>this.Features</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1724">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.Features</span></code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-serialization-featurebits.html">FeatureBits</a>&#32;option</span></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:P:DotNetLightning.Payment.PaymentRequest.Features`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:DotNetLightning.Payment.PaymentRequest.Features\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-serialization-featurebits.html">FeatureBits</a>&#32;option</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1725', 1725)" onmouseover="showTip(event, '1725', 1725)">
+                <p>
+                  <a id="HumanReadablePart">
+                    <a href="#HumanReadablePart">
+                      <code><span>this.HumanReadablePart</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1725">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.HumanReadablePart</span></code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code>string</code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:P:DotNetLightning.Payment.PaymentRequest.HumanReadablePart`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:DotNetLightning.Payment.PaymentRequest.HumanReadablePart\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code>string</code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1726', 1726)" onmouseover="showTip(event, '1726', 1726)">
+                <p>
+                  <a id="IsExpired">
+                    <a href="#IsExpired">
+                      <code><span>this.IsExpired</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1726">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.IsExpired</span></code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code>bool</code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:P:DotNetLightning.Payment.PaymentRequest.IsExpired`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:DotNetLightning.Payment.PaymentRequest.IsExpired\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code>bool</code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1727', 1727)" onmouseover="showTip(event, '1727', 1727)">
+                <p>
+                  <a id="MinFinalCLTVExpiryDelta">
+                    <a href="#MinFinalCLTVExpiryDelta">
+                      <code><span>this.MinFinalCLTVExpiryDelta</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1727">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.MinFinalCLTVExpiryDelta</span></code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-primitives-blockheightoffset32.html">BlockHeightOffset32</a></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:P:DotNetLightning.Payment.PaymentRequest.MinFinalCLTVExpiryDelta`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:DotNetLightning.Payment.PaymentRequest.MinFinalCLTVExpiryDelta\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-primitives-blockheightoffset32.html">BlockHeightOffset32</a></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1728', 1728)" onmouseover="showTip(event, '1728', 1728)">
+                <p>
+                  <a id="NodeIdValue">
+                    <a href="#NodeIdValue">
+                      <code><span>this.NodeIdValue</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1728">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.NodeIdValue</span></code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-primitives-nodeid.html">NodeId</a></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:P:DotNetLightning.Payment.PaymentRequest.NodeIdValue`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:DotNetLightning.Payment.PaymentRequest.NodeIdValue\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-primitives-nodeid.html">NodeId</a></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1729', 1729)" onmouseover="showTip(event, '1729', 1729)">
+                <p>
+                  <a id="PaymentHash">
+                    <a href="#PaymentHash">
+                      <code><span>this.PaymentHash</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1729">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.PaymentHash</span></code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-primitives-paymenthash.html">PaymentHash</a></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:P:DotNetLightning.Payment.PaymentRequest.PaymentHash`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:DotNetLightning.Payment.PaymentRequest.PaymentHash\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-primitives-paymenthash.html">PaymentHash</a></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1730', 1730)" onmouseover="showTip(event, '1730', 1730)">
+                <p>
+                  <a id="PaymentSecret">
+                    <a href="#PaymentSecret">
+                      <code><span>this.PaymentSecret</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1730">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.PaymentSecret</span></code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span><a href="https://docs.microsoft.com/dotnet/api/nbitcoin.uint256">uint256</a>&#32;option</span></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:P:DotNetLightning.Payment.PaymentRequest.PaymentSecret`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:DotNetLightning.Payment.PaymentRequest.PaymentSecret\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span><a href="https://docs.microsoft.com/dotnet/api/nbitcoin.uint256">uint256</a>&#32;option</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1731', 1731)" onmouseover="showTip(event, '1731', 1731)">
+                <p>
+                  <a id="PrefixValue">
+                    <a href="#PrefixValue">
+                      <code><span>this.PrefixValue</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1731">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.PrefixValue</span></code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code>string</code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:P:DotNetLightning.Payment.PaymentRequest.PrefixValue`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:DotNetLightning.Payment.PaymentRequest.PrefixValue\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code>string</code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1732', 1732)" onmouseover="showTip(event, '1732', 1732)">
+                <p>
+                  <a id="RoutingInfo">
+                    <a href="#RoutingInfo">
+                      <code><span>this.RoutingInfo</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1732">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.RoutingInfo</span></code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span><span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-extrahop.html">ExtraHop</a>&#32;list</span>&#32;list</span></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:P:DotNetLightning.Payment.PaymentRequest.RoutingInfo`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:DotNetLightning.Payment.PaymentRequest.RoutingInfo\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span><span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-extrahop.html">ExtraHop</a>&#32;list</span>&#32;list</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1733', 1733)" onmouseover="showTip(event, '1733', 1733)">
+                <p>
+                  <a id="Sign">
+                    <a href="#Sign">
+                      <code><span>this.Sign</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1733">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.Sign</span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        privKey
+                      </b>
+                      :
+                      <code><a href="https://docs.microsoft.com/dotnet/api/nbitcoin.key">Key</a></code>
+                    </span>
+                    <br/>
+                    <span>
+                      <b>
+                        ?forceLowR
+                      </b>
+                      :
+                      <code>bool</code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-paymentrequest.html">PaymentRequest</a></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:DotNetLightning.Payment.PaymentRequest.Sign`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:DotNetLightning.Payment.PaymentRequest.Sign\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-params">
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  privKey
+                </span>
+                :
+                <code><a href="https://docs.microsoft.com/dotnet/api/nbitcoin.key">Key</a></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  ?forceLowR
+                </span>
+                :
+                <code>bool</code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+            </dl>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-paymentrequest.html">PaymentRequest</a></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1734', 1734)" onmouseover="showTip(event, '1734', 1734)">
+                <p>
+                  <a id="SignatureValue">
+                    <a href="#SignatureValue">
+                      <code><span>this.SignatureValue</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1734">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.SignatureValue</span></code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span><span>(<span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-primitives-lnecdsasignature.html">LNECDSASignature</a>&#32;*&#32;byte</span>)</span>&#32;option</span></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:P:DotNetLightning.Payment.PaymentRequest.SignatureValue`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:DotNetLightning.Payment.PaymentRequest.SignatureValue\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span><span>(<span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-primitives-lnecdsasignature.html">LNECDSASignature</a>&#32;*&#32;byte</span>)</span>&#32;option</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1735', 1735)" onmouseover="showTip(event, '1735', 1735)">
+                <p>
+                  <a id="TagsValue">
+                    <a href="#TagsValue">
+                      <code><span>this.TagsValue</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1735">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.TagsValue</span></code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-taggedfields.html">TaggedFields</a></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:P:DotNetLightning.Payment.PaymentRequest.TagsValue`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:DotNetLightning.Payment.PaymentRequest.TagsValue\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-taggedfields.html">TaggedFields</a></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1736', 1736)" onmouseover="showTip(event, '1736', 1736)">
+                <p>
+                  <a id="TimestampValue">
+                    <a href="#TimestampValue">
+                      <code><span>this.TimestampValue</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1736">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.TimestampValue</span></code>
+                  <br/>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><a href="https://docs.microsoft.com/dotnet/api/system.datetimeoffset">DateTimeOffset</a></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:P:DotNetLightning.Payment.PaymentRequest.TimestampValue`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'P:DotNetLightning.Payment.PaymentRequest.TimestampValue\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><a href="https://docs.microsoft.com/dotnet/api/system.datetimeoffset">DateTimeOffset</a></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1737', 1737)" onmouseover="showTip(event, '1737', 1737)">
+                <p>
+                  <a id="ToString">
+                    <a href="#ToString">
+                      <code><span>this.ToString</span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1737">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>this.ToString</span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        signer
+                      </b>
+                      :
+                      <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-imessagesigner.html">IMessageSigner</a></code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code>string</code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:DotNetLightning.Payment.PaymentRequest.ToString`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:DotNetLightning.Payment.PaymentRequest.ToString\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-params">
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  signer
+                </span>
+                :
+                <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-imessagesigner.html">IMessageSigner</a></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+            </dl>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code>string</code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div>
+    <h3>
+      Static members
+    </h3>
+    <table class="table outer-list fsdocs-member-list">
+      <thead>
+        <tr>
+          <td class="fsdocs-member-list-header">
+            Static member
+          </td>
+          <td class="fsdocs-member-list-header">
+            Description
+          </td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1738', 1738)" onmouseover="showTip(event, '1738', 1738)">
+                <p>
+                  <a id="Parse">
+                    <a href="#Parse">
+                      <code><span>PaymentRequest.Parse<span><span>(<span>str</span>)</span></span></span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1738">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>PaymentRequest.Parse<span><span>(<span>str</span>)</span></span></span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        str
+                      </b>
+                      :
+                      <code>string</code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span><a href="https://fsharp.github.io/fsharp-core-docs/reference/fsharp-core-fsharpresult-2">Result</a>&lt;<span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-paymentrequest.html">PaymentRequest</a>,&#32;string</span>&gt;</span></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:DotNetLightning.Payment.PaymentRequest.Parse`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:DotNetLightning.Payment.PaymentRequest.Parse\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-params">
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  str
+                </span>
+                :
+                <code>string</code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+            </dl>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span><a href="https://fsharp.github.io/fsharp-core-docs/reference/fsharp-core-fsharpresult-2">Result</a>&lt;<span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-paymentrequest.html">PaymentRequest</a>,&#32;string</span>&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1739', 1739)" onmouseover="showTip(event, '1739', 1739)">
+                <p>
+                  <a id="TryCreate">
+                    <a href="#TryCreate">
+                      <code><span>PaymentRequest.TryCreate<span><span>(<span>prefix,&#32;amount,&#32;timestamp,&#32;nodeId,&#32;tags,&#32;signer</span>)</span></span></span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1739">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>PaymentRequest.TryCreate<span><span>(<span>prefix,&#32;amount,&#32;timestamp,&#32;nodeId,&#32;tags,&#32;signer</span>)</span></span></span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        prefix
+                      </b>
+                      :
+                      <code>string</code>
+                    </span>
+                    <br/>
+                    <span>
+                      <b>
+                        amount
+                      </b>
+                      :
+                      <code><span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-lnmoney.html">LNMoney</a>&#32;option</span></code>
+                    </span>
+                    <br/>
+                    <span>
+                      <b>
+                        timestamp
+                      </b>
+                      :
+                      <code><a href="https://docs.microsoft.com/dotnet/api/system.datetimeoffset">DateTimeOffset</a></code>
+                    </span>
+                    <br/>
+                    <span>
+                      <b>
+                        nodeId
+                      </b>
+                      :
+                      <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-primitives-nodeid.html">NodeId</a></code>
+                    </span>
+                    <br/>
+                    <span>
+                      <b>
+                        tags
+                      </b>
+                      :
+                      <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-taggedfields.html">TaggedFields</a></code>
+                    </span>
+                    <br/>
+                    <span>
+                      <b>
+                        signer
+                      </b>
+                      :
+                      <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-imessagesigner.html">IMessageSigner</a></code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span><a href="https://fsharp.github.io/fsharp-core-docs/reference/fsharp-core-fsharpresult-2">Result</a>&lt;<span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-paymentrequest.html">PaymentRequest</a>,&#32;string</span>&gt;</span></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:DotNetLightning.Payment.PaymentRequest.TryCreate`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:DotNetLightning.Payment.PaymentRequest.TryCreate\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                <p>signer must sign by node_secret which corresponds to node_id</p>
+
+
+              </p>
+            </div>
+            <dl class="fsdocs-params">
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  prefix
+                </span>
+                :
+                <code>string</code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  amount
+                </span>
+                :
+                <code><span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-lnmoney.html">LNMoney</a>&#32;option</span></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  timestamp
+                </span>
+                :
+                <code><a href="https://docs.microsoft.com/dotnet/api/system.datetimeoffset">DateTimeOffset</a></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  nodeId
+                </span>
+                :
+                <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-primitives-nodeid.html">NodeId</a></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  tags
+                </span>
+                :
+                <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-taggedfields.html">TaggedFields</a></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  signer
+                </span>
+                :
+                <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-imessagesigner.html">IMessageSigner</a></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+            </dl>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span><a href="https://fsharp.github.io/fsharp-core-docs/reference/fsharp-core-fsharpresult-2">Result</a>&lt;<span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-paymentrequest.html">PaymentRequest</a>,&#32;string</span>&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1740', 1740)" onmouseover="showTip(event, '1740', 1740)">
+                <p>
+                  <a id="TryCreate">
+                    <a href="#TryCreate">
+                      <code><span>PaymentRequest.TryCreate<span><span>(<span>prefix,&#32;amount,&#32;timestamp,&#32;nodeId,&#32;tags,&#32;nodeSecret</span>)</span></span></span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1740">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>PaymentRequest.TryCreate<span><span>(<span>prefix,&#32;amount,&#32;timestamp,&#32;nodeId,&#32;tags,&#32;nodeSecret</span>)</span></span></span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        prefix
+                      </b>
+                      :
+                      <code>string</code>
+                    </span>
+                    <br/>
+                    <span>
+                      <b>
+                        amount
+                      </b>
+                      :
+                      <code><span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-lnmoney.html">LNMoney</a>&#32;option</span></code>
+                    </span>
+                    <br/>
+                    <span>
+                      <b>
+                        timestamp
+                      </b>
+                      :
+                      <code><a href="https://docs.microsoft.com/dotnet/api/system.datetimeoffset">DateTimeOffset</a></code>
+                    </span>
+                    <br/>
+                    <span>
+                      <b>
+                        nodeId
+                      </b>
+                      :
+                      <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-primitives-nodeid.html">NodeId</a></code>
+                    </span>
+                    <br/>
+                    <span>
+                      <b>
+                        tags
+                      </b>
+                      :
+                      <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-taggedfields.html">TaggedFields</a></code>
+                    </span>
+                    <br/>
+                    <span>
+                      <b>
+                        nodeSecret
+                      </b>
+                      :
+                      <code><a href="https://docs.microsoft.com/dotnet/api/nbitcoin.key">Key</a></code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span><a href="https://fsharp.github.io/fsharp-core-docs/reference/fsharp-core-fsharpresult-2">Result</a>&lt;<span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-paymentrequest.html">PaymentRequest</a>,&#32;string</span>&gt;</span></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:DotNetLightning.Payment.PaymentRequest.TryCreate`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:DotNetLightning.Payment.PaymentRequest.TryCreate\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-params">
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  prefix
+                </span>
+                :
+                <code>string</code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  amount
+                </span>
+                :
+                <code><span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-lnmoney.html">LNMoney</a>&#32;option</span></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  timestamp
+                </span>
+                :
+                <code><a href="https://docs.microsoft.com/dotnet/api/system.datetimeoffset">DateTimeOffset</a></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  nodeId
+                </span>
+                :
+                <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-primitives-nodeid.html">NodeId</a></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  tags
+                </span>
+                :
+                <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-taggedfields.html">TaggedFields</a></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  nodeSecret
+                </span>
+                :
+                <code><a href="https://docs.microsoft.com/dotnet/api/nbitcoin.key">Key</a></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+            </dl>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span><a href="https://fsharp.github.io/fsharp-core-docs/reference/fsharp-core-fsharpresult-2">Result</a>&lt;<span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-paymentrequest.html">PaymentRequest</a>,&#32;string</span>&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1741', 1741)" onmouseover="showTip(event, '1741', 1741)">
+                <p>
+                  <a id="TryCreate">
+                    <a href="#TryCreate">
+                      <code><span>PaymentRequest.TryCreate<span><span>(<span>prefix,&#32;amount,&#32;timestamp,&#32;tags,&#32;nodeSecret</span>)</span></span></span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1741">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>PaymentRequest.TryCreate<span><span>(<span>prefix,&#32;amount,&#32;timestamp,&#32;tags,&#32;nodeSecret</span>)</span></span></span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        prefix
+                      </b>
+                      :
+                      <code>string</code>
+                    </span>
+                    <br/>
+                    <span>
+                      <b>
+                        amount
+                      </b>
+                      :
+                      <code><span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-lnmoney.html">LNMoney</a>&#32;option</span></code>
+                    </span>
+                    <br/>
+                    <span>
+                      <b>
+                        timestamp
+                      </b>
+                      :
+                      <code><a href="https://docs.microsoft.com/dotnet/api/system.datetimeoffset">DateTimeOffset</a></code>
+                    </span>
+                    <br/>
+                    <span>
+                      <b>
+                        tags
+                      </b>
+                      :
+                      <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-taggedfields.html">TaggedFields</a></code>
+                    </span>
+                    <br/>
+                    <span>
+                      <b>
+                        nodeSecret
+                      </b>
+                      :
+                      <code><a href="https://docs.microsoft.com/dotnet/api/nbitcoin.key">Key</a></code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span><a href="https://fsharp.github.io/fsharp-core-docs/reference/fsharp-core-fsharpresult-2">Result</a>&lt;<span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-paymentrequest.html">PaymentRequest</a>,&#32;string</span>&gt;</span></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:DotNetLightning.Payment.PaymentRequest.TryCreate`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:DotNetLightning.Payment.PaymentRequest.TryCreate\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-params">
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  prefix
+                </span>
+                :
+                <code>string</code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  amount
+                </span>
+                :
+                <code><span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-lnmoney.html">LNMoney</a>&#32;option</span></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  timestamp
+                </span>
+                :
+                <code><a href="https://docs.microsoft.com/dotnet/api/system.datetimeoffset">DateTimeOffset</a></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  tags
+                </span>
+                :
+                <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-taggedfields.html">TaggedFields</a></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  nodeSecret
+                </span>
+                :
+                <code><a href="https://docs.microsoft.com/dotnet/api/nbitcoin.key">Key</a></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+            </dl>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span><a href="https://fsharp.github.io/fsharp-core-docs/reference/fsharp-core-fsharpresult-2">Result</a>&lt;<span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-paymentrequest.html">PaymentRequest</a>,&#32;string</span>&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+        <tr>
+          <td class="fsdocs-member-usage">
+            <div>
+              <code onmouseout="hideTip(event, '1742', 1742)" onmouseover="showTip(event, '1742', 1742)">
+                <p>
+                  <a id="TryCreate">
+                    <a href="#TryCreate">
+                      <code><span>PaymentRequest.TryCreate<span><span>(<span>network,&#32;amount,&#32;timestamp,&#32;tags,&#32;nodeSecret</span>)</span></span></span></code>
+                    </a>
+                  </a>
+                </p>
+              </code>
+              <div class="fsdocs-tip" id="1742">
+                <div class="member-tooltip">
+                  Full Usage: 
+                  <code><span>PaymentRequest.TryCreate<span><span>(<span>network,&#32;amount,&#32;timestamp,&#32;tags,&#32;nodeSecret</span>)</span></span></span></code>
+                  <br/>
+                  <br/>
+                  Parameters: 
+                  <ul>
+                    <span>
+                      <b>
+                        network
+                      </b>
+                      :
+                      <code><a href="https://docs.microsoft.com/dotnet/api/nbitcoin.network">Network</a></code>
+                    </span>
+                    <br/>
+                    <span>
+                      <b>
+                        amount
+                      </b>
+                      :
+                      <code><span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-lnmoney.html">LNMoney</a>&#32;option</span></code>
+                    </span>
+                    <br/>
+                    <span>
+                      <b>
+                        timestamp
+                      </b>
+                      :
+                      <code><a href="https://docs.microsoft.com/dotnet/api/system.datetimeoffset">DateTimeOffset</a></code>
+                    </span>
+                    <br/>
+                    <span>
+                      <b>
+                        tags
+                      </b>
+                      :
+                      <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-taggedfields.html">TaggedFields</a></code>
+                    </span>
+                    <br/>
+                    <span>
+                      <b>
+                        nodeSecret
+                      </b>
+                      :
+                      <code><a href="https://docs.microsoft.com/dotnet/api/nbitcoin.key">Key</a></code>
+                    </span>
+                    <br/>
+                  </ul>
+                  <br/>
+                  <span>
+                    Returns: 
+                    <code><span><a href="https://fsharp.github.io/fsharp-core-docs/reference/fsharp-core-fsharpresult-2">Result</a>&lt;<span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-paymentrequest.html">PaymentRequest</a>,&#32;string</span>&gt;</span></code>
+                  </span>
+                  <br/>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="fsdocs-member-xmldoc">
+            <div class="fsdocs-summary">
+              <div class="fsdocs-source-link" title="Copy signature (Markdown)" onclick="Clipboard_CopyTo('`cref:M:DotNetLightning.Payment.PaymentRequest.TryCreate`')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-md-hover.png" class="hover"/>
+              </div>
+              <div class="fsdocs-source-link" title="Copy signature (XML)" onclick="Clipboard_CopyTo('<see cref=\'M:DotNetLightning.Payment.PaymentRequest.TryCreate\'/>')">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/copy-xml-hover.png" class="hover"/>
+              </div>
+              <a href="" class="fsdocs-source-link" title="Source on GitHub">
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github.png" class="normal"/>
+                <img src="https://joemphilips.github.io/DotNetLightning/content/img/github-hover.png" class="hover"/>
+              </a>
+              <p class="fsdocs-summary">
+                
+              </p>
+            </div>
+            <dl class="fsdocs-params">
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  network
+                </span>
+                :
+                <code><a href="https://docs.microsoft.com/dotnet/api/nbitcoin.network">Network</a></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  amount
+                </span>
+                :
+                <code><span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-utils-lnmoney.html">LNMoney</a>&#32;option</span></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  timestamp
+                </span>
+                :
+                <code><a href="https://docs.microsoft.com/dotnet/api/system.datetimeoffset">DateTimeOffset</a></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  tags
+                </span>
+                :
+                <code><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-taggedfields.html">TaggedFields</a></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+              <dt class="fsdocs-param">
+                <span class="fsdocs-param-name">
+                  nodeSecret
+                </span>
+                :
+                <code><a href="https://docs.microsoft.com/dotnet/api/nbitcoin.key">Key</a></code>
+              </dt>
+              <dd class="fsdocs-param-docs"></dd>
+            </dl>
+            <dl class="fsdocs-returns">
+              <dt>
+                <span class="fsdocs-return-name">
+                  Returns: 
+                </span>
+                <code><span><a href="https://fsharp.github.io/fsharp-core-docs/reference/fsharp-core-fsharpresult-2">Result</a>&lt;<span><a href="https://joemphilips.github.io/DotNetLightning/reference/dotnetlightning-payment-paymentrequest.html">PaymentRequest</a>,&#32;string</span>&gt;</span></code>
+              </dt>
+              <dd class="fsdocs-return-docs"></dd>
+            </dl>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+            
+        </div>
+
+        <!-- BEGIN SEARCH BOX: this adds support for the search box -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.css" />
+        <script type="text/javascript">var fsdocs_search_baseurl = 'https://joemphilips.github.io/DotNetLightning/';</script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.3.8/lunr.min.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/JavaScript-autoComplete/1.0.4/auto-complete.min.js"></script>
+        <script type="text/javascript" src="https://joemphilips.github.io/DotNetLightning/content/fsdocs-search.js"></script>
+        <!-- END SEARCH BOX: this adds support for the search box -->
+    </div>
+</body>
+
+</html>
