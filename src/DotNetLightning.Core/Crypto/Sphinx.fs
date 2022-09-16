@@ -125,44 +125,6 @@ module Sphinx =
             ([ blindingFactor0 ])
             ([ secret0 ])
 
-    let rec internal generateFiller
-        (keyType: string)
-        (payloads: list<array<byte>>)
-        (sharedSecrets: list<Key>)
-        =
-        let fillerSize =
-            payloads.[1..]
-            |> List.sumBy(fun payload -> payload.Length + MacLength)
-
-        let rec fillInner (filler: array<byte>) (i: int) : array<byte> =
-            if i = payloads.Length - 1 then
-                filler
-            else
-                let fillerOffset =
-                    payloads.[.. i - 1]
-                    |> List.sumBy(fun payload -> payload.Length + MacLength)
-
-                let fillerStart = HopDataSize - fillerOffset
-                let fillerEnd = HopDataSize + payloads.[i].Length + MacLength
-                let fillerLength = fillerEnd - fillerStart
-
-                let key = generateKey(keyType, sharedSecrets.[i].ToBytes())
-
-                let stream =
-                    let s = generateStream(key, fillerEnd)
-                    s.[fillerStart .. fillerEnd - 1]
-
-                let newFiller =
-                    [
-                        xor(Array.take fillerLength filler, stream)
-                        Array.skip fillerLength filler
-                    ]
-                    |> Array.concat
-
-                fillInner newFiller (i + 1)
-
-        fillInner (Array.zeroCreate fillerSize) 0
-
     let peekPayloadLength(bytes: array<byte>) =
         result {
             match bytes |> Array.head with
@@ -171,6 +133,38 @@ module Sphinx =
                 let! length, _ = bytes.TryPopVarInt()
                 return int length + MacLength + length.ToVarInt().Length
         }
+
+
+    let rec internal generateFiller
+        (keyType: string)
+        (payloads: list<array<byte>>)
+        (sharedSecrets: list<Key>)
+        =
+        List.zip payloads sharedSecrets
+        |> List.fold
+            (fun (padding: array<byte>) (payload, sharedSecret) ->
+                match peekPayloadLength payload with
+                | Ok perHopPayloadLength ->
+                    let key = generateKey(keyType, sharedSecret.ToBytes())
+
+                    let padding1 =
+                        Array.append
+                            padding
+                            (Array.zeroCreate perHopPayloadLength)
+
+                    let stream =
+                        generateStream(key, HopDataSize + perHopPayloadLength)
+                        |> Array.skip(
+                            HopDataSize + perHopPayloadLength - padding1.Length
+                        )
+
+                    xor(padding1, stream)
+                | Error err ->
+                    failwithf
+                        "generateFiller::peekPayloadLength returned an error: %s"
+                        err
+            )
+            Array.empty
 
     type ParsedPacket =
         {
@@ -348,7 +342,11 @@ module Sphinx =
                     (sessionKey)
                     (pubKeys)
 
-            let filler = generateFiller "rho" payloads sharedSecrets
+            let filler =
+                generateFiller
+                    "rho"
+                    (payloads |> List.take(payloads.Length - 1))
+                    (sharedSecrets |> List.take(sharedSecrets.Length - 1))
 
             let initialPacket =
                 { OnionPacket.LastPacket with
