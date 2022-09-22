@@ -149,6 +149,14 @@ module RouterPrimitives =
             NextNodeId: NodeId
             HTLCMaximum: LNMoney
         }
+        interface IRoutingHopInfo with
+            override self.NodeId = self.ExtraHop.NodeId
+            override self.ShortChannelId = self.ExtraHop.ShortChannelId
+            override self.FeeBaseMSat = self.ExtraHop.FeeBase
+            override self.FeeProportionalMillionths = self.ExtraHop.FeeProportionalMillionths
+            override self.CltvExpiryDelta = self.ExtraHop.CLTVExpiryDelta.Value |> uint32
+            override self.HTLCMaximumMSat = Some RoutingHeuristics.CAPACITY_CHANNEL_HIGH
+            override self.HTLCMinimumMSat = LNMoney.Zero
 
     type IHop =
         abstract member NodeId: NodeId
@@ -180,8 +188,8 @@ module RouterPrimitives =
                 LastUpdate = u
             }
 
-        static member FromGraphEdge(g: GraphLabel) =
-            ChannelHop.Create(g.Desc.A, g.Desc.B, g.Update)
+        static member FromGraphEdge(g: RoutingGrpahEdge) =
+            ChannelHop.Create(g.Source, g.Target, g.Update)
 
         interface IHop with
             member this.NodeId = this.NodeId

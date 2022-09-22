@@ -10,6 +10,9 @@ open DotNetLightning.Payment
 open DotNetLightning.Routing.Graph
 open NBitcoin
 
+open QuikGraph
+open QuikGraph.Algorithms
+
 open ResultUtils
 open ResultUtils.Portability
 
@@ -85,11 +88,10 @@ module Routing =
             (fun (amount: LNMoney, acs) (nextNodeId, extraHop) ->
                 let nextAmount =
                     amount
-                    + Graph.nodeFee(
-                        extraHop.FeeBaseValue,
-                        int64 extraHop.FeeProportionalMillionthsValue,
-                        amount
-                    )
+                    + (Graph.EdgeWeightCaluculation.nodeFee
+                        extraHop.FeeBaseValue
+                        (int64 extraHop.FeeProportionalMillionthsValue)
+                        amount)
 
                 (nextAmount,
                  acs
@@ -117,13 +119,12 @@ module Routing =
     /// Find a route in the graph between localNodeId and targetNodeId, returns the route.
     /// Will perform a k-shortest path selection given the @param numRoutes and randomly select one of the result
     let rec findRoute
-        (g: DirectedLNGraph)
+        (g: RoutingGraph)
         (local: NodeId)
         (target: NodeId)
         (amount: LNMoney)
         (numRoutes: int)
-        (extraE: Set<GraphLabel>)
-        (ignoredE: Set<ChannelDesc>)
+        (extraE: IRoutingHopInfo list)
         (ignoredV: Set<NodeId>)
         (routeParams: RouteParams)
         (currentBlockHeight: BlockHeight)
@@ -155,41 +156,22 @@ module Routing =
             let cltvOk(cltv: BlockHeightOffset16) =
                 cltv <= routeParams.RouteMaxCLTV
 
-            let boundaries =
-                fun (weight: RichWeight) ->
-                    feeOk(weight.Cost - amount, amount)
-                    && lengthOk(weight.Length)
-                    && cltvOk(weight.CLTV)
+            let candidates = 
+                // make use of extraE !
+                let tryGetPath = 
+                    g.ShortestPathsDijkstra(
+                        System.Func<RoutingGrpahEdge, float>(EdgeWeightCaluculation.edgeWeight amount), 
+                        local)
+                seq {
+                    for i=1 to numRoutes do
+                        match tryGetPath.Invoke target with
+                        | true, path -> yield path
+                        | false, _ -> ()
+                }
 
-            Graph.yenKShortestPaths
-                (g)
-                (local)
-                (target)
-                amount
-                ignoredE
-                ignoredV
-                extraE
-                numRoutes
-                routeParams.Ratios
-                currentBlockHeight
-                boundaries
+            candidates
             |> Seq.toList
             |> function
-                // if not found within the constraints we relax and repeat the search
-                | [] when routeParams.RouteMaxLength < ROUTE_MAX_LENGTH ->
-                    findRoute
-                        (g)
-                        local
-                        target
-                        amount
-                        numRoutes
-                        (extraE)
-                        (ignoredE)
-                        (ignoredV)
-                        { routeParams with
-                            RouteMaxLength = ROUTE_MAX_LENGTH
-                        }
-                        currentBlockHeight
                 | [] -> routeFindingError "Route not found!"
                 | routes ->
                     routes
@@ -199,7 +181,7 @@ module Routing =
                            id
                     |> List.head
                     |> fun x ->
-                        (x.Path |> Seq.map ChannelHop.FromGraphEdge) |> Ok
+                        (x |> Seq.map ChannelHop.FromGraphEdge) |> Ok
 
     let private toFakeUpdate
         (extraHop: ExtraHop)
@@ -243,23 +225,8 @@ module Routing =
 
             let extraEdges =
                 assistedChannels
-                |> Seq.map(fun kvp ->
-                    let ac = kvp.Value
-
-                    {
-                        GraphLabel.Desc =
-                            {
-                                ShortChannelId = ac.ExtraHop.ShortChannelIdValue
-                                A = ac.ExtraHop.NodeIdValue
-                                B = ac.NextNodeId
-                            }
-                        Update = toFakeUpdate (ac.ExtraHop) (ac.HTLCMaximum)
-                    }
-                )
-                |> Set
-
-            let ignoredEdges =
-                routeRequest.IgnoredChannels |> Set.union d.ExcludedChannels
+                |> Seq.map(fun kvp -> kvp.Value :> IRoutingHopInfo)
+                |> Seq.toList
 
             let routeParams = routeRequest.RouteParams
 
@@ -276,7 +243,6 @@ module Routing =
                 a
                 routesToFind
                 extraEdges
-                ignoredEdges
                 ignoredV
                 routeParams
                 d.CurrentBlockHeight

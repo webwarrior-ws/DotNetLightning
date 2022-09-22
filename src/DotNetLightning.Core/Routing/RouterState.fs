@@ -157,7 +157,7 @@ type RouterData =
             Awaiting: Map<ChannelAnnouncementMsg, seq<PeerId>>
             PrivateChannels: Map<ShortChannelId, PrivateChannel>
             ExcludedChannels: Set<ChannelDesc>
-            Graph: DirectedLNGraph
+            Graph: RoutingGraph
             Sync: Map<NodeId, Sync>
             CurrentBlockHeight: BlockHeight
         }
