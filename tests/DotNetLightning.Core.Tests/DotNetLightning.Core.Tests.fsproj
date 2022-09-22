@@ -19,16 +19,15 @@
     <Compile Include="FunctionalTests.fs" />
     <Compile Include="SphinxTests.fs" />
     <Compile Include="GeneratorsTests.fs" />
-    <Compile Include="GraphTests.fs" />
     <Compile Include="PerCommitmentSecretStoreTests.fs" />
     <Compile Include="TxOutLexicographicCompareTests.fs" />
-    <Compile Include="RouteCalculationTests.fs" />
     <Compile Include="TransactionBolt3TestVectorTests.fs" />
     <Compile Include="ClaimReceivedHTLCTests.fs" />
     <Compile Include="TransactionTests.fs" />
     <Compile Include="PeerChannelEncryptorTests.fs" />
     <Compile Include="KeyRepositoryTests.fs" />
     <Compile Include="EncryptDecrypt.fs" />
+    <Compile Include="RouteCalculationTests.fs" />
     <Compile Include="PaymentTests.fs" />
     <Compile Include="LSATTests.fs" />
     <Compile Include="PaymentPropertyTests.fs" />
@@ -41,6 +40,7 @@
     <PackageReference Update="FSharp.Core" Version="4.7.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="2.2.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.7.0" />
+    <PackageReference Include="QuikGraph" Version="2.5.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\DotNetLightning.Core\DotNetLightning.Core.fsproj" />
