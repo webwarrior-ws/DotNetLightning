@@ -48,18 +48,18 @@ type RoutingGrpahEdge =
         member this.Target = this.Target
 
     interface IRoutingHopInfo with
-        override self.NodeId = self.Source
-        override self.ShortChannelId = self.Update.ShortChannelId
-        override self.FeeBaseMSat = self.Update.FeeBaseMSat
+        override this.NodeId = this.Source
+        override this.ShortChannelId = this.Update.ShortChannelId
+        override this.FeeBaseMSat = this.Update.FeeBaseMSat
 
-        override self.FeeProportionalMillionths =
-            self.Update.FeeProportionalMillionths
+        override this.FeeProportionalMillionths =
+            this.Update.FeeProportionalMillionths
 
-        override self.CltvExpiryDelta =
-            self.Update.CLTVExpiryDelta.Value |> uint32
+        override this.CltvExpiryDelta =
+            this.Update.CLTVExpiryDelta.Value |> uint32
 
-        override self.HTLCMaximumMSat = self.Update.HTLCMaximumMSat
-        override self.HTLCMinimumMSat = self.Update.HTLCMinimumMSat
+        override this.HTLCMaximumMSat = this.Update.HTLCMaximumMSat
+        override this.HTLCMinimumMSat = this.Update.HTLCMinimumMSat
 
 
 type RoutingGraph = ArrayAdjacencyGraph<NodeId, RoutingGrpahEdge>
@@ -160,25 +160,25 @@ type ChannelUpdates =
             Backward = None
         }
 
-    member self.With(update: UnsignedChannelUpdateMsg) =
+    member this.With(update: UnsignedChannelUpdateMsg) =
         let isForward = (update.ChannelFlags &&& 1uy) = 0uy
 
         if isForward then
-            match self.Forward with
-            | Some(prevUpd) when update.Timestamp < prevUpd.Timestamp -> self
+            match this.Forward with
+            | Some(prevUpd) when update.Timestamp < prevUpd.Timestamp -> this
             | _ ->
-                { self with
+                { this with
                     Forward = Some(update)
                 }
         else
-            match self.Backward with
-            | Some(prevUpd) when update.Timestamp < prevUpd.Timestamp -> self
+            match this.Backward with
+            | Some(prevUpd) when update.Timestamp < prevUpd.Timestamp -> this
             | _ ->
-                { self with
+                { this with
                     Backward = Some(update)
                 }
 
-    member self.Combine(other: ChannelUpdates) =
+    member this.Combine(other: ChannelUpdates) =
         let combine upd1opt upd2opt : UnsignedChannelUpdateMsg option =
             match upd1opt, upd2opt with
             | None, None -> None
@@ -191,8 +191,8 @@ type ChannelUpdates =
                     upd2opt
 
         {
-            Forward = combine self.Forward other.Forward
-            Backward = combine self.Backward other.Backward
+            Forward = combine this.Forward other.Forward
+            Backward = combine this.Backward other.Backward
         }
 
 
@@ -215,11 +215,11 @@ type RoutingGraphData
             RoutingGraph(AdjacencyGraph())
         )
 
-    member self.LastSyncTimestamp = lastSyncTimestamp
+    member this.LastSyncTimestamp = lastSyncTimestamp
 
-    member self.Graph = routingGraph
+    member this.Graph = routingGraph
 
-    member self.Update
+    member this.Update
         (newAnnouncements: seq<UnsignedChannelAnnouncementMsg>)
         (newUpdates: Map<ShortChannelId, ChannelUpdates>)
         (syncTimestamp: uint32)
@@ -276,14 +276,14 @@ type RoutingGraphData
             RoutingGraph(baseGraph)
         )
 
-    member self.BlacklistChannel(shortChannelId: ShortChannelId) =
+    member this.BlacklistChannel(shortChannelId: ShortChannelId) =
         let newBlacklistedChannels =
             blacklistedChannels |> Set.add shortChannelId
 
         let baseGraph = AdjacencyGraph<NodeId, RoutingGrpahEdge>()
 
         baseGraph.AddVerticesAndEdgeRange(
-            self.Graph.Edges
+            this.Graph.Edges
             |> Seq.filter(fun edge -> edge.ShortChannelId <> shortChannelId)
         )
         |> ignore
@@ -291,19 +291,19 @@ type RoutingGraphData
         RoutingGraphData(
             announcements,
             updates,
-            self.LastSyncTimestamp,
+            this.LastSyncTimestamp,
             newBlacklistedChannels,
             RoutingGraph(baseGraph)
         )
 
-    member self.GetChannelUpdates() =
+    member this.GetChannelUpdates() =
         updates
 
     /// Get shortest route from source to target node taking cahnnel fees and cltv expiry deltas into account.
     /// Don't use channels that have insufficient capacity for given paymentAmount.
     /// See EdgeWeightCaluculation.edgeWeight.
     /// If no routes can be found, return empty sequence.
-    member self.GetRoute
+    member this.GetRoute
         (sourceNodeId: NodeId)
         (targetNodeId: NodeId)
         (paymentAmount: LNMoney)
