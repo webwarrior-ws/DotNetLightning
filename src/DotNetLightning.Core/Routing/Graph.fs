@@ -21,7 +21,6 @@ open QuikGraph
 open QuikGraph.Algorithms
 
 
-[<Struct>]
 type ChannelDesc =
     {
         ShortChannelId: ShortChannelId
