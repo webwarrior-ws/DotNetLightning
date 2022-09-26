@@ -685,106 +685,69 @@ let tests =
                 let route2 = gLow.GetRoute a d lowAmount
 
                 Expect.isEmpty route2 ""
-        ] (*
+
             testCase "route to self"
             <| fun _ ->
-                let updates =
+                let descs, updates =
                     [
                         makeUpdateSimple(1UL, a, b)
                         makeUpdateSimple(2UL, b, c)
                         makeUpdateSimple(3UL, c, d)
                     ]
+                    |> List.unzip
 
-                let g = DirectedLNGraph.Create().AddEdges(updates)
+                let updatesMap = makeUpdatesMap updates
 
-                let route =
-                    Routing.findRoute
-                        g
-                        a
-                        a
-                        DEFAULT_AMOUNT_MSAT
-                        1
-                        (Set.empty)
-                        (Set.empty)
-                        (Set.empty)
-                        DEFAULT_ROUTE_PARAMS
-                        (BlockHeight(400000u))
+                let graph = RoutingGraphData().Update descs updatesMap 0u
 
-                Expect.isError (Result.ToFSharpCoreResult route) ""
+                let route = graph.GetRoute a a DEFAULT_AMOUNT_MSAT
+
+                Expect.isEmpty route ""
 
             testCase "route to immediate neighbor"
             <| fun _ ->
-                let updates =
+                let descs, updates =
                     [
                         makeUpdateSimple(1UL, a, b)
                         makeUpdateSimple(2UL, b, c)
                         makeUpdateSimple(3UL, c, d)
                         makeUpdateSimple(4UL, d, e)
                     ]
+                    |> List.unzip
 
-                let g = DirectedLNGraph.Create().AddEdges(updates)
+                let updatesMap = makeUpdatesMap updates
 
-                let route =
-                    Routing.findRoute
-                        (g)
-                        a
-                        b
-                        DEFAULT_AMOUNT_MSAT
-                        1
-                        (Set.empty)
-                        (Set.empty)
-                        (Set.empty)
-                        DEFAULT_ROUTE_PARAMS
-                        (BlockHeight(400000u))
-                    |> Result.deref
+                let graph = RoutingGraphData().Update descs updatesMap 0u
+
+                let route = graph.GetRoute a b DEFAULT_AMOUNT_MSAT
 
                 Expect.sequenceEqual (hops2Ids(route)) [ 1UL ] ""
 
             testCase "directed graph"
             <| fun _ ->
-                let updates =
+                let descs, updates =
                     [
                         makeUpdateSimple(1UL, a, b)
                         makeUpdateSimple(2UL, b, c)
                         makeUpdateSimple(3UL, c, d)
                         makeUpdateSimple(4UL, d, e)
                     ]
+                    |> List.unzip
                 // a -> e works, e -> a fails
-                let g = DirectedLNGraph.Create().AddEdges(updates)
+                let updatesMap = makeUpdatesMap updates
 
-                let route1 =
-                    Routing.findRoute
-                        g
-                        a
-                        e
-                        DEFAULT_AMOUNT_MSAT
-                        1
-                        (Set.empty)
-                        (Set.empty)
-                        (Set.empty)
-                        DEFAULT_ROUTE_PARAMS
-                        (BlockHeight(400000u))
-                    |> Result.deref
+                let graph = RoutingGraphData().Update descs updatesMap 0u
+
+                let route1 = graph.GetRoute a e DEFAULT_AMOUNT_MSAT
 
                 Expect.sequenceEqual
                     (hops2Ids(route1))
                     [ 1UL; 2UL; 3UL; 4UL ]
                     ""
 
-                let route2 =
-                    Routing.findRoute
-                        g
-                        e
-                        e
-                        DEFAULT_AMOUNT_MSAT
-                        1
-                        (Set.empty)
-                        (Set.empty)
-                        (Set.empty)
-                        DEFAULT_ROUTE_PARAMS
-                        (BlockHeight(400000u))
+                let route2 = graph.GetRoute e a DEFAULT_AMOUNT_MSAT
 
-                Expect.isError (Result.ToFSharpCoreResult route2) ""
+                Expect.isEmpty route2 ""
 
             testCase "calculate route and return metadata"
             <| fun _ ->
@@ -800,7 +763,7 @@ let tests =
                         HTLCMinimumMSat = LNMoney.MilliSatoshis(42L)
                         FeeBaseMSat = LNMoney.MilliSatoshis(2500L)
                         FeeProportionalMillionths = 140u
-                        HTLCMaximumMSat = None
+                        HTLCMaximumMSat = Some DEFAULT_HTLC_MAXIMUM_MSAT
                     }
 
                 let uba =
@@ -815,7 +778,7 @@ let tests =
                         HTLCMinimumMSat = LNMoney.MilliSatoshis(43L)
                         FeeBaseMSat = LNMoney.MilliSatoshis(2501L)
                         FeeProportionalMillionths = 141u
-                        HTLCMaximumMSat = None
+                        HTLCMaximumMSat = Some DEFAULT_HTLC_MAXIMUM_MSAT
                     }
 
                 let ubc =
@@ -830,7 +793,7 @@ let tests =
                         HTLCMinimumMSat = LNMoney.MilliSatoshis(44L)
                         FeeBaseMSat = LNMoney.MilliSatoshis(2502L)
                         FeeProportionalMillionths = 142u
-                        HTLCMaximumMSat = None
+                        HTLCMaximumMSat = Some DEFAULT_HTLC_MAXIMUM_MSAT
                     }
 
                 let ucb =
@@ -845,7 +808,7 @@ let tests =
                         HTLCMinimumMSat = LNMoney.MilliSatoshis(45L)
                         FeeBaseMSat = LNMoney.MilliSatoshis(2503L)
                         FeeProportionalMillionths = 143u
-                        HTLCMaximumMSat = None
+                        HTLCMaximumMSat = Some DEFAULT_HTLC_MAXIMUM_MSAT
                     }
 
                 let ucd =
@@ -876,7 +839,7 @@ let tests =
                         HTLCMinimumMSat = LNMoney.MilliSatoshis(47L)
                         FeeBaseMSat = LNMoney.MilliSatoshis(2505L)
                         FeeProportionalMillionths = 145u
-                        HTLCMaximumMSat = None
+                        HTLCMaximumMSat = Some DEFAULT_HTLC_MAXIMUM_MSAT
                     }
 
                 let ude =
@@ -891,7 +854,7 @@ let tests =
                         HTLCMinimumMSat = LNMoney.MilliSatoshis(48L)
                         FeeBaseMSat = LNMoney.MilliSatoshis(2506L)
                         FeeProportionalMillionths = 146u
-                        HTLCMaximumMSat = None
+                        HTLCMaximumMSat = Some DEFAULT_HTLC_MAXIMUM_MSAT
                     }
 
                 let ued =
@@ -906,7 +869,7 @@ let tests =
                         HTLCMinimumMSat = LNMoney.MilliSatoshis(49L)
                         FeeBaseMSat = LNMoney.MilliSatoshis(2507L)
                         FeeProportionalMillionths = 147u
-                        HTLCMaximumMSat = None
+                        HTLCMaximumMSat = Some DEFAULT_HTLC_MAXIMUM_MSAT
                     }
 
                 let updates =
@@ -976,35 +939,24 @@ let tests =
                          })
                         ued
 
-                let g =
-                    DirectedLNGraph
-                        .Create()
-                        .AddEdges(updates |> Map.toSeq)
+                let graph = 
+                    RoutingGraphData().Update 
+                        (updates |> Seq.map (fun pair -> pair.Key))
+                        (updates |> Seq.map (fun pair -> pair.Value) |> makeUpdatesMap)
+                        0u
 
-                let hops =
-                    Routing.findRoute
-                        g
-                        a
-                        e
-                        DEFAULT_AMOUNT_MSAT
-                        1
-                        (Set.empty)
-                        (Set.empty)
-                        (Set.empty)
-                        DEFAULT_ROUTE_PARAMS
-                        (BlockHeight(400000u))
-                    |> Result.deref
-
-                let e =
+                let hops = graph.GetRoute a e DEFAULT_AMOUNT_MSAT
+                
+                let expectedHops =
                     [
-                        (ChannelHop.Create(a, b, uab))
-                        (ChannelHop.Create(b, c, ubc))
-                        (ChannelHop.Create(c, d, ucd))
-                        (ChannelHop.Create(d, e, ude))
+                        { Source = a; Target = b; Update = uab; ShortChannelId = uab.ShortChannelId }
+                        { Source = b; Target = c; Update = ubc; ShortChannelId = ubc.ShortChannelId }
+                        { Source = c; Target = d; Update = ucd; ShortChannelId = ucd.ShortChannelId }
+                        { Source = d; Target = e; Update = ude; ShortChannelId = ude.ShortChannelId }
                     ]
 
-                Expect.sequenceEqual hops e ""
-
+                Expect.sequenceEqual hops expectedHops ""
+        ] (*
             testCase "convert extra hops to assisted channels"
             <| fun _ ->
                 let extraHop1 =
