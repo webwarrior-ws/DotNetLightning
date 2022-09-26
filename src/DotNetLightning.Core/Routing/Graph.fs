@@ -21,6 +21,15 @@ open QuikGraph
 open QuikGraph.Algorithms
 
 
+[<Struct>]
+type ChannelDesc =
+    {
+        ShortChannelId: ShortChannelId
+        A: NodeId
+        B: NodeId
+    }
+
+
 /// Information about hop in multi-hop payments
 /// Used in edge cost calculation and onion packet creation.
 /// Cannot reuse RoutingGrpahEdge because route can contain extra hops
@@ -35,7 +44,7 @@ type IRoutingHopInfo =
     abstract HTLCMinimumMSat: LNMoney
 
 
-type RoutingGrpahEdge =
+type RoutingGraphEdge =
     {
         Source: NodeId
         Target: NodeId
@@ -62,7 +71,7 @@ type RoutingGrpahEdge =
         override this.HTLCMinimumMSat = this.Update.HTLCMinimumMSat
 
 
-type RoutingGraph = ArrayAdjacencyGraph<NodeId, RoutingGrpahEdge>
+type internal RoutingGraph = ArrayAdjacencyGraph<NodeId, RoutingGraphEdge>
 
 
 module RoutingHeuristics =
@@ -199,7 +208,7 @@ type ChannelUpdates =
 type RoutingGraphData
     private
     (
-        announcements: Set<UnsignedChannelAnnouncementMsg>,
+        channelDescriptions: Set<ChannelDesc>,
         updates: Map<ShortChannelId, ChannelUpdates>,
         lastSyncTimestamp: uint32,
         blacklistedChannels: Set<ShortChannelId>,
@@ -220,16 +229,13 @@ type RoutingGraphData
     member this.Graph = routingGraph
 
     member this.Update
-        (newAnnouncements: seq<UnsignedChannelAnnouncementMsg>)
+        (newChannelDescriptions: seq<ChannelDesc>)
         (newUpdates: Map<ShortChannelId, ChannelUpdates>)
         (syncTimestamp: uint32)
         : RoutingGraphData =
-        let announcements =
-            announcements
-            |> Set.union(newAnnouncements |> Set.ofSeq)
-            |> Set.filter(fun ann ->
-                not(blacklistedChannels |> Set.contains ann.ShortChannelId)
-            )
+        let channelDescriptions =
+            channelDescriptions
+            |> Set.union(newChannelDescriptions |> Set.ofSeq)
 
         let updates =
             if updates.IsEmpty then
@@ -249,10 +255,10 @@ type RoutingGraphData
 
                 tmpUpdates
 
-        let baseGraph = AdjacencyGraph<NodeId, RoutingGrpahEdge>()
+        let baseGraph = AdjacencyGraph<NodeId, RoutingGraphEdge>()
 
-        for ann in announcements do
-            let updates = updates.[ann.ShortChannelId]
+        for channelDesc in channelDescriptions do
+            let updates = updates.[channelDesc.ShortChannelId]
 
             let addEdge source target (upd: UnsignedChannelUpdateMsg) =
                 let edge =
@@ -265,11 +271,11 @@ type RoutingGraphData
 
                 baseGraph.AddVerticesAndEdge edge |> ignore
 
-            updates.Forward |> Option.iter(addEdge ann.NodeId1 ann.NodeId2)
-            updates.Backward |> Option.iter(addEdge ann.NodeId2 ann.NodeId1)
+            updates.Forward |> Option.iter(addEdge channelDesc.A channelDesc.B)
+            updates.Backward |> Option.iter(addEdge channelDesc.B channelDesc.A)
 
         RoutingGraphData(
-            announcements,
+            channelDescriptions,
             updates,
             syncTimestamp,
             blacklistedChannels,
@@ -280,7 +286,7 @@ type RoutingGraphData
         let newBlacklistedChannels =
             blacklistedChannels |> Set.add shortChannelId
 
-        let baseGraph = AdjacencyGraph<NodeId, RoutingGrpahEdge>()
+        let baseGraph = AdjacencyGraph<NodeId, RoutingGraphEdge>()
 
         baseGraph.AddVerticesAndEdgeRange(
             this.Graph.Edges
@@ -289,7 +295,7 @@ type RoutingGraphData
         |> ignore
 
         RoutingGraphData(
-            announcements,
+            channelDescriptions,
             updates,
             this.LastSyncTimestamp,
             newBlacklistedChannels,
@@ -307,10 +313,10 @@ type RoutingGraphData
         (sourceNodeId: NodeId)
         (targetNodeId: NodeId)
         (paymentAmount: LNMoney)
-        : seq<RoutingGrpahEdge> =
+        : seq<RoutingGraphEdge> =
         let tryGetPath =
             routingGraph.ShortestPathsDijkstra(
-                System.Func<RoutingGrpahEdge, float>(
+                System.Func<RoutingGraphEdge, float>(
                     EdgeWeightCaluculation.edgeWeight paymentAmount
                 ),
                 sourceNodeId
