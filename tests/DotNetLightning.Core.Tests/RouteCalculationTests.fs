@@ -117,7 +117,8 @@ let makeUpdateCore
             FeeBaseMSat = feeBase
             FeeProportionalMillionths = feeProportionalMillions
             // htlc_maximum_msat must always be present
-            HTLCMaximumMSat = Some(maxHtlc |> Option.defaultValue DEFAULT_HTLC_MAXIMUM_MSAT)
+            HTLCMaximumMSat =
+                Some(maxHtlc |> Option.defaultValue DEFAULT_HTLC_MAXIMUM_MSAT)
         }
 
     desc, update
@@ -147,30 +148,36 @@ let makeUpdate
 let makeUpdateSimple(shortChannelId, a, b) =
     makeUpdate(shortChannelId, a, b, LNMoney.Zero, 0u, None, None, None)
 
-let makeUpdatesMap (updateMsgs: seq<UnsignedChannelUpdateMsg>) =
-    let mutable updatesMap : Map<ShortChannelId, ChannelUpdates> = Map.empty
+let makeUpdatesMap(updateMsgs: seq<UnsignedChannelUpdateMsg>) =
+    let mutable updatesMap: Map<ShortChannelId, ChannelUpdates> = Map.empty
+
     for updMsg in updateMsgs do
         let oldValue =
             match updatesMap |> Map.tryFind updMsg.ShortChannelId with
             | Some(updates) -> updates
             | None -> ChannelUpdates.Empty
-        updatesMap <- updatesMap |> Map.add updMsg.ShortChannelId (oldValue.With updMsg)
+
+        updatesMap <-
+            updatesMap |> Map.add updMsg.ShortChannelId (oldValue.With updMsg)
+
     updatesMap
 
 let totalRouteCost (amount: LNMoney) (route: seq<RoutingGraphEdge>) =
-    route 
+    route
     |> Seq.toArray
     |> Array.rev
     |> Array.skipBack 1
-    |> Array.fold (fun acc edge -> acc + EdgeWeightCaluculation.edgeFeeCost acc edge) amount
-    
+    |> Array.fold
+        (fun acc edge -> acc + EdgeWeightCaluculation.edgeFeeCost acc edge)
+        amount
+
 
 [<Tests>]
 let tests =
     testList
         "Route Calculation"
         [
-            let calculateRouteSimple () =
+            let calculateRouteSimple() =
                 let descs, updates =
                     [
                         makeUpdate(
@@ -216,7 +223,8 @@ let tests =
                     ]
                     |> List.unzip
 
-                let g = RoutingGraphData().Update descs (makeUpdatesMap updates) 0u
+                let g =
+                    RoutingGraphData().Update descs (makeUpdatesMap updates) 0u
 
                 let route = g.GetRoute a e Constants.DEFAULT_AMOUNT_MSAT
 
@@ -225,8 +233,7 @@ let tests =
                     ([ 1UL; 2UL; 3UL; 4UL ])
                     ""
 
-            testCase "Calculate simple route"
-            <| fun _ -> calculateRouteSimple()
+            testCase "Calculate simple route" <| fun _ -> calculateRouteSimple()
 
             testCase "Calculate the shortest path (correct fees)"
             <| fun _ ->
@@ -309,8 +316,8 @@ let tests =
                 Expect.sequenceEqual (hops2Ids(route)) [ 4UL; 5UL; 6UL ] ""
                 Expect.equal totalCost expectedCost ""
 
-                // FIXME: handle situations like this in future
-                (*
+            // FIXME: handle situations like this in future
+            (*
                 // Now channel 5 could route the amount (10000) but not the amount + fees (10007)
                 let (desc, update) =
                     makeUpdate(
@@ -324,10 +331,10 @@ let tests =
                         None
                     )
 
-                let graph1 = 
-                    graph.Update 
-                        [desc] 
-                        (Map.ofList [ update.ShortChannelId, (ChannelUpdates.Empty.With { update with Timestamp = update.Timestamp + 1u }) ]) 
+                let graph1 =
+                    graph.Update
+                        [desc]
+                        (Map.ofList [ update.ShortChannelId, (ChannelUpdates.Empty.With { update with Timestamp = update.Timestamp + 1u }) ])
                         0u
 
                 let route1 = graph1.GetRoute a d amount
@@ -595,8 +602,8 @@ let tests =
 
                 let graph = RoutingGraphData().Update descs updatesMap 0u
 
-                Expect.throwsT<System.ArgumentException> 
-                    (fun () -> graph.GetRoute a e DEFAULT_AMOUNT_MSAT |> ignore) 
+                Expect.throwsT<System.ArgumentException>
+                    (fun () -> graph.GetRoute a e DEFAULT_AMOUNT_MSAT |> ignore)
                     ""
 
             testCase "route not found (source OR target node not in graph)"
@@ -612,8 +619,8 @@ let tests =
 
                 let graph = RoutingGraphData().Update descs updatesMap 0u
 
-                Expect.throwsT<System.ArgumentException> 
-                    (fun () -> graph.GetRoute a d DEFAULT_AMOUNT_MSAT |> ignore) 
+                Expect.throwsT<System.ArgumentException>
+                    (fun () -> graph.GetRoute a d DEFAULT_AMOUNT_MSAT |> ignore)
                     ""
 
                 let route2 = graph.GetRoute b e DEFAULT_AMOUNT_MSAT
@@ -659,8 +666,17 @@ let tests =
                     ]
                     |> List.unzip
 
-                let gHigh = RoutingGraphData().Update descsHi (makeUpdatesMap updatesHi) 0u
-                let gLow = RoutingGraphData().Update descsLow (makeUpdatesMap updatesLow) 0u
+                let gHigh =
+                    RoutingGraphData().Update
+                        descsHi
+                        (makeUpdatesMap updatesHi)
+                        0u
+
+                let gLow =
+                    RoutingGraphData().Update
+                        descsLow
+                        (makeUpdatesMap updatesLow)
+                        0u
 
                 let route1 = gHigh.GetRoute a d highAmount
 
@@ -669,7 +685,7 @@ let tests =
                 let route2 = gLow.GetRoute a d lowAmount
 
                 Expect.isEmpty route2 ""
-    ](*
+        ] (*
             testCase "route to self"
             <| fun _ ->
                 let updates =
