@@ -159,22 +159,22 @@ module EdgeWeightCaluculation =
 
 
 module ExtraHop =
-    let internal ToIRoutingHopInfo(extraHop: ExtraHop) =
+    let internal toIRoutingHopInfo(extraHop: ExtraHop) =
         { new IRoutingHopInfo with
-            override self.NodeId = extraHop.NodeIdValue
-            override self.ShortChannelId = extraHop.ShortChannelIdValue
-            override self.FeeBaseMSat = extraHop.FeeBaseValue
+            override this.NodeId = extraHop.NodeIdValue
+            override this.ShortChannelId = extraHop.ShortChannelIdValue
+            override this.FeeBaseMSat = extraHop.FeeBaseValue
 
-            override self.FeeProportionalMillionths =
+            override this.FeeProportionalMillionths =
                 extraHop.FeeProportionalMillionthsValue
 
-            override self.CltvExpiryDelta =
+            override this.CltvExpiryDelta =
                 extraHop.CLTVExpiryDeltaValue.Value |> uint32
             // Folowing values are only used in edge weight calculation
-            override self.HTLCMaximumMSat =
+            override this.HTLCMaximumMSat =
                 Some RoutingHeuristics.CAPACITY_CHANNEL_HIGH
 
-            override self.HTLCMinimumMSat = LNMoney.Zero
+            override this.HTLCMinimumMSat = LNMoney.Zero
         }
 
 
@@ -401,7 +401,7 @@ type RoutingGraphData
                         if not <| Array.isEmpty publicPart then
                             let extraPart =
                                 extraRoute
-                                |> Seq.map ExtraHop.ToIRoutingHopInfo
+                                |> Seq.map ExtraHop.toIRoutingHopInfo
                                 |> Seq.toArray
 
                             yield Array.append publicPart extraPart
