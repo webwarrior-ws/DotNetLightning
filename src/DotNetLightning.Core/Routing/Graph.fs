@@ -22,6 +22,9 @@ open QuikGraph
 open QuikGraph.Algorithms
 open QuikGraph.Algorithms.RankedShortestPath
 
+open ResultUtils
+open ResultUtils.Portability
+
 
 type ChannelDesc =
     {
