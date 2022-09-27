@@ -71,15 +71,12 @@ let pks =
 let a, b, c, d, e, f, g =
     pks.[0], pks.[1], pks.[2], pks.[3], pks.[4], pks.[5], pks.[6]
 
-let hops2Ids(route: seq<RoutingGraphEdge>) =
+let hops2Ids(route: seq<IRoutingHopInfo>) =
     route
     |> Seq.map(fun hop ->
         hop.ShortChannelId.ToBytes()
         |> fun x -> NBitcoin.Utils.ToUInt64(x, false)
     )
-
-let hops2Nodes(route: seq<RoutingGraphEdge>) =
-    route |> Seq.map(fun hop -> (hop.Target, hop.Source))
 
 let makeUpdateCore
     (
@@ -162,7 +159,7 @@ let makeUpdatesMap(updateMsgs: seq<UnsignedChannelUpdateMsg>) =
 
     updatesMap
 
-let totalRouteCost (amount: LNMoney) (route: seq<RoutingGraphEdge>) =
+let totalRouteCost (amount: LNMoney) (route: seq<IRoutingHopInfo>) =
     route
     |> Seq.toArray
     |> Array.rev
@@ -226,7 +223,7 @@ let tests =
                 let g =
                     RoutingGraphData().Update descs (makeUpdatesMap updates) 0u
 
-                let route = g.GetRoute a e Constants.DEFAULT_AMOUNT_MSAT
+                let route = g.GetRoute a e Constants.DEFAULT_AMOUNT_MSAT []
 
                 Expect.sequenceEqual
                     (route |> hops2Ids)
@@ -309,7 +306,7 @@ let tests =
 
                 let graph = RoutingGraphData().Update descs updatesMap 0u
 
-                let route = graph.GetRoute a d amount
+                let route = graph.GetRoute a d amount []
 
                 let totalCost = totalRouteCost amount route
 
@@ -404,7 +401,7 @@ let tests =
 
                 let graph = RoutingGraphData().Update descs updatesMap 0u
 
-                let route = graph.GetRoute a e DEFAULT_AMOUNT_MSAT
+                let route = graph.GetRoute a e DEFAULT_AMOUNT_MSAT []
 
                 Expect.sequenceEqual (hops2Ids(route)) [ 2UL; 5UL ] ""
 
@@ -423,7 +420,7 @@ let tests =
 
                 let graph = RoutingGraphData().Update descs updatesMap 0u
 
-                let route1 = graph.GetRoute a e DEFAULT_AMOUNT_MSAT
+                let route1 = graph.GetRoute a e DEFAULT_AMOUNT_MSAT []
 
                 Expect.sequenceEqual
                     (hops2Ids(route1))
@@ -434,7 +431,7 @@ let tests =
                     graph.BlacklistChannel <| ShortChannelId.FromUInt64(3UL)
 
                 let route2 =
-                    graphWithRemovedEdge.GetRoute a e DEFAULT_AMOUNT_MSAT
+                    graphWithRemovedEdge.GetRoute a e DEFAULT_AMOUNT_MSAT []
 
                 Expect.isEmpty route2 ""
 
@@ -470,7 +467,7 @@ let tests =
 
                 let graph = RoutingGraphData().Update descs updatesMap 0u
 
-                let route = graph.GetRoute f i DEFAULT_AMOUNT_MSAT
+                let route = graph.GetRoute f i DEFAULT_AMOUNT_MSAT []
 
                 Expect.sequenceEqual (hops2Ids(route)) [ 1UL; 2UL; 3UL ] ""
 
@@ -500,7 +497,7 @@ let tests =
 
                 let graph = RoutingGraphData().Update descs updatesMap 0u
 
-                let route = graph.GetRoute f i DEFAULT_AMOUNT_MSAT
+                let route = graph.GetRoute f i DEFAULT_AMOUNT_MSAT []
 
                 Expect.isEmpty route ""
 
@@ -556,7 +553,7 @@ let tests =
 
                 let graph = RoutingGraphData().Update descs updatesMap 0u
 
-                let route = graph.GetRoute f i DEFAULT_AMOUNT_MSAT
+                let route = graph.GetRoute f i DEFAULT_AMOUNT_MSAT []
 
                 Expect.sequenceEqual (hops2Ids(route)) [ 1UL; 6UL; 3UL ] ""
 
@@ -585,7 +582,7 @@ let tests =
 
                 let graph = RoutingGraphData().Update descs updatesMap 0u
 
-                let route = graph.GetRoute a e DEFAULT_AMOUNT_MSAT
+                let route = graph.GetRoute a e DEFAULT_AMOUNT_MSAT []
 
                 Expect.sequenceEqual (hops2Ids(route)) [ 1UL; 2UL; 3UL; 4UL ] ""
 
@@ -603,7 +600,7 @@ let tests =
                 let graph = RoutingGraphData().Update descs updatesMap 0u
 
                 Expect.throwsT<System.ArgumentException>
-                    (fun () -> graph.GetRoute a e DEFAULT_AMOUNT_MSAT |> ignore)
+                    (fun () -> graph.GetRoute a e DEFAULT_AMOUNT_MSAT [] |> ignore)
                     ""
 
             testCase "route not found (source OR target node not in graph)"
@@ -620,10 +617,10 @@ let tests =
                 let graph = RoutingGraphData().Update descs updatesMap 0u
 
                 Expect.throwsT<System.ArgumentException>
-                    (fun () -> graph.GetRoute a d DEFAULT_AMOUNT_MSAT |> ignore)
+                    (fun () -> graph.GetRoute a d DEFAULT_AMOUNT_MSAT [] |> ignore)
                     ""
 
-                let route2 = graph.GetRoute b e DEFAULT_AMOUNT_MSAT
+                let route2 = graph.GetRoute b e DEFAULT_AMOUNT_MSAT []
 
                 Expect.isEmpty route2 ""
 
@@ -678,11 +675,11 @@ let tests =
                         (makeUpdatesMap updatesLow)
                         0u
 
-                let route1 = gHigh.GetRoute a d highAmount
+                let route1 = gHigh.GetRoute a d highAmount []
 
                 Expect.isEmpty route1 ""
 
-                let route2 = gLow.GetRoute a d lowAmount
+                let route2 = gLow.GetRoute a d lowAmount []
 
                 Expect.isEmpty route2 ""
 
@@ -700,7 +697,7 @@ let tests =
 
                 let graph = RoutingGraphData().Update descs updatesMap 0u
 
-                let route = graph.GetRoute a a DEFAULT_AMOUNT_MSAT
+                let route = graph.GetRoute a a DEFAULT_AMOUNT_MSAT []
 
                 Expect.isEmpty route ""
 
@@ -719,7 +716,7 @@ let tests =
 
                 let graph = RoutingGraphData().Update descs updatesMap 0u
 
-                let route = graph.GetRoute a b DEFAULT_AMOUNT_MSAT
+                let route = graph.GetRoute a b DEFAULT_AMOUNT_MSAT []
 
                 Expect.sequenceEqual (hops2Ids(route)) [ 1UL ] ""
 
@@ -738,14 +735,14 @@ let tests =
 
                 let graph = RoutingGraphData().Update descs updatesMap 0u
 
-                let route1 = graph.GetRoute a e DEFAULT_AMOUNT_MSAT
+                let route1 = graph.GetRoute a e DEFAULT_AMOUNT_MSAT []
 
                 Expect.sequenceEqual
                     (hops2Ids(route1))
                     [ 1UL; 2UL; 3UL; 4UL ]
                     ""
 
-                let route2 = graph.GetRoute e a DEFAULT_AMOUNT_MSAT
+                let route2 = graph.GetRoute e a DEFAULT_AMOUNT_MSAT []
 
                 Expect.isEmpty route2 ""
 
@@ -939,175 +936,79 @@ let tests =
                          })
                         ued
 
-                let graph = 
-                    RoutingGraphData().Update 
-                        (updates |> Seq.map (fun pair -> pair.Key))
-                        (updates |> Seq.map (fun pair -> pair.Value) |> makeUpdatesMap)
+                let graph =
+                    RoutingGraphData().Update
+                        (updates |> Seq.map(fun pair -> pair.Key))
+                        (updates
+                         |> Seq.map(fun pair -> pair.Value)
+                         |> makeUpdatesMap)
                         0u
 
-                let hops = graph.GetRoute a e DEFAULT_AMOUNT_MSAT
-                
+                let hops = graph.GetRoute a e DEFAULT_AMOUNT_MSAT []
+
                 let expectedHops =
                     [
-                        { Source = a; Target = b; Update = uab; ShortChannelId = uab.ShortChannelId }
-                        { Source = b; Target = c; Update = ubc; ShortChannelId = ubc.ShortChannelId }
-                        { Source = c; Target = d; Update = ucd; ShortChannelId = ucd.ShortChannelId }
-                        { Source = d; Target = e; Update = ude; ShortChannelId = ude.ShortChannelId }
+                        {
+                            Source = a
+                            Target = b
+                            Update = uab
+                            ShortChannelId = uab.ShortChannelId
+                        }
+                        {
+                            Source = b
+                            Target = c
+                            Update = ubc
+                            ShortChannelId = ubc.ShortChannelId
+                        }
+                        {
+                            Source = c
+                            Target = d
+                            Update = ucd
+                            ShortChannelId = ucd.ShortChannelId
+                        }
+                        {
+                            Source = d
+                            Target = e
+                            Update = ude
+                            ShortChannelId = ude.ShortChannelId
+                        }
                     ]
+                    |> List.map(fun x -> x :> IRoutingHopInfo)
 
                 Expect.sequenceEqual hops expectedHops ""
-        ] (*
-            testCase "convert extra hops to assisted channels"
-            <| fun _ ->
-                let extraHop1 =
-                    {
-                        ExtraHop.NodeId = a
-                        ShortChannelId = ShortChannelId.FromUInt64(1UL)
-                        FeeBase = LNMoney.Satoshis(12L)
-                        FeeProportionalMillionths = 10000u
-                        CLTVExpiryDelta = BlockHeightOffset16(12us)
-                    }
-
-                let extraHop2 =
-                    {
-                        ExtraHop.NodeId = b
-                        ShortChannelId = ShortChannelId.FromUInt64(2UL)
-                        FeeBase = LNMoney.Satoshis(200L)
-                        FeeProportionalMillionths = 0u
-                        CLTVExpiryDelta = BlockHeightOffset16(22us)
-                    }
-
-                let extraHop3 =
-                    {
-                        ExtraHop.NodeId = c
-                        ShortChannelId = ShortChannelId.FromUInt64(3UL)
-                        FeeBase = LNMoney.Satoshis(150L)
-                        FeeProportionalMillionths = 0u
-                        CLTVExpiryDelta = BlockHeightOffset16(32us)
-                    }
-
-                let extraHop4 =
-                    {
-                        ExtraHop.NodeId = d
-                        ShortChannelId = ShortChannelId.FromUInt64(4UL)
-                        FeeBase = LNMoney.Satoshis(50L)
-                        FeeProportionalMillionths = 0u
-                        CLTVExpiryDelta = BlockHeightOffset16(42us)
-                    }
-
-                let extraHops =
-                    [
-                        extraHop1
-                        extraHop2
-                        extraHop3
-                        extraHop4
-                    ]
-
-                let amount = LNMoney.Satoshis(900L) // below RoutingHeuristics.CAPACITY_CHANNEL_LOW
-
-                let acs =
-                    Routing.toAssistedChannels e amount extraHops |> Map.ofSeq
-
-                Expect.equal
-                    (acs.[extraHop4.ShortChannelId])
-                    ({
-                         AssistedChannel.ExtraHop = extraHop4
-                         NextNodeId = e
-                         HTLCMaximum = (LNMoney.Satoshis(1050L))
-                     })
-                    ""
-
-                Expect.equal
-                    (acs.[extraHop3.ShortChannelId])
-                    ({
-                         AssistedChannel.ExtraHop = extraHop3
-                         NextNodeId = d
-                         HTLCMaximum = (LNMoney.Satoshis(1200L))
-                     })
-                    ""
-
-                Expect.equal
-                    (acs.[extraHop2.ShortChannelId])
-                    ({
-                         AssistedChannel.ExtraHop = extraHop2
-                         NextNodeId = c
-                         HTLCMaximum = (LNMoney.Satoshis(1400L))
-                     })
-                    ""
-
-                Expect.equal
-                    (acs.[extraHop1.ShortChannelId])
-                    ({
-                         AssistedChannel.ExtraHop = extraHop1
-                         NextNodeId = b
-                         HTLCMaximum = (LNMoney.Satoshis(1426L))
-                     })
-                    ""
 
             testCase "blacklist routes"
             <| fun _ ->
-                let updates =
+                let descs, updates =
                     [
                         makeUpdateSimple(1UL, a, b)
                         makeUpdateSimple(2UL, b, c)
                         makeUpdateSimple(3UL, c, d)
                         makeUpdateSimple(4UL, d, e)
                     ]
+                    |> List.unzip
 
-                let g = DirectedLNGraph.Create().AddEdges(updates)
+                let updatesMap = makeUpdatesMap updates
 
-                let ignoredE =
-                    Set.singleton(
-                        {
-                            ShortChannelId = ShortChannelId.FromUInt64(3UL)
-                            A = c
-                            B = d
-                        }
-                    )
+                let graph = RoutingGraphData().Update descs updatesMap 0u
+
+                let ignoredChannel = ShortChannelId.FromUInt64(3UL)
+
+                let graphWithBlacklist = graph.BlacklistChannel ignoredChannel
 
                 let route1 =
-                    Routing.findRoute
-                        (g)
-                        a
-                        e
-                        DEFAULT_AMOUNT_MSAT
-                        1
-                        (Set.empty)
-                        (ignoredE)
-                        (Set.empty)
-                        DEFAULT_ROUTE_PARAMS
-                        (BlockHeight(400000u))
+                    graphWithBlacklist.GetRoute a e DEFAULT_AMOUNT_MSAT []
 
-                Expect.isError (Result.ToFSharpCoreResult route1) ""
-
-                // verify that we left the graph untouched
-                Expect.isTrue
-                    (g.ContainsEdge(makeUpdateSimple(3UL, c, d) |> fst))
-                    ""
-
-                Expect.isTrue (g.ContainsVertex(c)) ""
-                Expect.isTrue (g.ContainsVertex(d)) ""
+                Expect.isEmpty route1 ""
 
                 // make sure we can find a route without the blacklist
-                let route2 =
-                    Routing.findRoute
-                        g
-                        a
-                        e
-                        DEFAULT_AMOUNT_MSAT
-                        1
-                        (Set.empty)
-                        (Set.empty)
-                        (Set.empty)
-                        DEFAULT_ROUTE_PARAMS
-                        (BlockHeight(400000u))
-                    |> Result.deref
+                let route2 = graph.GetRoute a e DEFAULT_AMOUNT_MSAT []
 
                 Expect.sequenceEqual
                     (hops2Ids(route2))
                     [ 1UL; 2UL; 3UL; 4UL ]
                     ""
-
+        ] (*
             testCase
                 "route to a destination that is not in the graph (with assisted routes)"
             <| fun _ ->

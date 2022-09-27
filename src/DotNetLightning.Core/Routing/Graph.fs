@@ -16,6 +16,7 @@ module NamespaceDocDummy =
 
 open DotNetLightning.Utils
 open DotNetLightning.Serialization.Msgs
+open DotNetLightning.Payment
 
 open QuikGraph
 open QuikGraph.Algorithms
@@ -154,6 +155,26 @@ module EdgeWeightCaluculation =
                 + capFactor * RoutingHeuristics.CapacityFactor
 
             factor * feeCost
+
+
+module ExtraHop =
+    let internal ToIRoutingHopInfo(extraHop: ExtraHop) =
+        { new IRoutingHopInfo with
+            override self.NodeId = extraHop.NodeIdValue
+            override self.ShortChannelId = extraHop.ShortChannelIdValue
+            override self.FeeBaseMSat = extraHop.FeeBaseValue
+
+            override self.FeeProportionalMillionths =
+                extraHop.FeeProportionalMillionthsValue
+
+            override self.CltvExpiryDelta =
+                extraHop.CLTVExpiryDeltaValue.Value |> uint32
+            // Folowing values are only used in edge weight calculation
+            override self.HTLCMaximumMSat =
+                Some RoutingHeuristics.CAPACITY_CHANNEL_HIGH
+
+            override self.HTLCMinimumMSat = LNMoney.Zero
+        }
 
 
 type ChannelUpdates =
@@ -307,12 +328,14 @@ type RoutingGraphData
     /// Get shortest route from source to target node taking cahnnel fees and cltv expiry deltas into account.
     /// Don't use channels that have insufficient capacity for given paymentAmount.
     /// See EdgeWeightCaluculation.edgeWeight.
+    /// extraRoutes is [optional] list of extra routes (see PaymentRequest.RoutingInfo and BOLT11)
     /// If no routes can be found, return empty sequence.
     member this.GetRoute
         (sourceNodeId: NodeId)
         (targetNodeId: NodeId)
         (paymentAmount: LNMoney)
-        : seq<RoutingGraphEdge> =
+        (extraRoutes: ExtraHop list list)
+        : seq<IRoutingHopInfo> =
         let tryGetPath =
             routingGraph.ShortestPathsDijkstra(
                 System.Func<RoutingGraphEdge, float>(
@@ -321,6 +344,42 @@ type RoutingGraphData
                 sourceNodeId
             )
 
-        match tryGetPath.Invoke targetNodeId with
-        | true, path -> path
-        | false, _ -> Seq.empty
+        let directRoute: IRoutingHopInfo [] =
+            match tryGetPath.Invoke targetNodeId with
+            | true, path -> path |> Seq.cast<IRoutingHopInfo> |> Seq.toArray
+            | false, _ -> Array.empty
+
+        if Array.isEmpty directRoute then
+            seq {
+                for extraRoute in extraRoutes do
+                    match extraRoute with
+                    | head :: _ ->
+                        let publicPart =
+                            this.GetRoute
+                                sourceNodeId
+                                head.NodeIdValue
+                                paymentAmount
+                                []
+                            |> Seq.cast<IRoutingHopInfo>
+                            |> Seq.toArray
+
+                        if not <| Array.isEmpty publicPart then
+                            let extraPart =
+                                extraRoute
+                                |> Seq.map ExtraHop.ToIRoutingHopInfo
+                                |> Seq.toArray
+
+                            yield Array.append publicPart extraPart
+                    | _ -> ()
+            }
+            |> Seq.sortBy(fun route ->
+                route
+                |> Array.sumBy(fun hopInfo ->
+                    EdgeWeightCaluculation.edgeWeight paymentAmount hopInfo
+                )
+            )
+            |> Seq.tryHead
+            |> Option.defaultValue [||]
+            :> seq<IRoutingHopInfo>
+        else
+            directRoute :> seq<IRoutingHopInfo>
