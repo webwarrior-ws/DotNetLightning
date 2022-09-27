@@ -102,6 +102,61 @@ module RoutingHeuristics =
     let CapacityFactor = 1.0
 
 
+/// We use heuristics to calculate the weight of an edge based on channel age, cltv delta and capacity.
+/// We favor older channels, with bigger capacity and small cltv delta
+type WeightRatios =
+    private
+        {
+            CLTVDeltaFactor: double
+            AgeFactor: double
+            CapacityFactor: double
+        }
+
+    static member TryCreate(cltvDeltaFactor, ageFactor, capacityFactor) =
+        let s = cltvDeltaFactor + ageFactor + capacityFactor
+
+        if (s <= 0. || 1. < s) then
+            sprintf
+                "sum of CLTVDeltaFactor + ageFactor + capacityFactor must in between 0 to 1. it was %f"
+                s
+            |> Error
+        else
+            {
+                CLTVDeltaFactor = cltvDeltaFactor
+                AgeFactor = ageFactor
+                CapacityFactor = capacityFactor
+            }
+            |> Ok
+
+    static member Default =
+        {
+            CLTVDeltaFactor = 0.333
+            AgeFactor = 0.333
+            CapacityFactor = 0.333
+        }
+
+
+type RouteParams =
+    {
+        Randomize: bool
+        MaxFeeBase: LNMoney
+        MaxFeePCT: double
+        RouteMaxLength: int
+        RouteMaxCLTV: BlockHeightOffset16
+        Ratios: WeightRatios
+    }
+
+    static member Default =
+        {
+            Randomize = false
+            MaxFeeBase = LNMoney.MilliSatoshis(21000L)
+            MaxFeePCT = 0.03
+            RouteMaxLength = 20
+            RouteMaxCLTV = BlockHeightOffset16 2160us
+            Ratios = WeightRatios.Default
+        }
+
+
 module EdgeWeightCaluculation =
     let nodeFee
         (baseFee: LNMoney)
@@ -123,7 +178,12 @@ module EdgeWeightCaluculation =
         LNMoney.Max(result, LNMoney.MilliSatoshis(1))
 
     /// Computes the weight for the given edge
-    let edgeWeight (paymentAmount: LNMoney) (edge: IRoutingHopInfo) : float =
+    let edgeWeight
+        (paymentAmount: LNMoney)
+        (currentBlockHeight: uint32)
+        (routeParams: RouteParams)
+        (edge: IRoutingHopInfo)
+        : float =
         let feeCost = float (edgeFeeCost paymentAmount edge).Value
         let channelCLTVDelta = edge.CltvExpiryDelta
 
@@ -136,6 +196,7 @@ module EdgeWeightCaluculation =
         elif paymentAmount < edge.HTLCMinimumMSat then
             infinity // our payment is too small for the channel, reject edge
         else
+            // Every edge is weighted by channel capacity, larger channels and less weight
             let capFactor =
                 1.0
                 - RoutingHeuristics.normalize(
@@ -144,6 +205,7 @@ module EdgeWeightCaluculation =
                     float RoutingHeuristics.CAPACITY_CHANNEL_HIGH.MilliSatoshi
                 )
 
+            // Every edge is weighted by cltv-delta value, normalized.
             let cltvFactor =
                 RoutingHeuristics.normalize(
                     float channelCLTVDelta,
@@ -151,9 +213,22 @@ module EdgeWeightCaluculation =
                     float RoutingHeuristics.CLTV_HIGH
                 )
 
+            let channelBlockHeight = edge.ShortChannelId.BlockHeight.Value
+            // every edge is weighted by funding block height where older blocks add less weight
+            let ageFactor =
+                RoutingHeuristics.normalize(
+                    channelBlockHeight |> double,
+                    (currentBlockHeight
+                     - (uint32 RoutingHeuristics.BLOCK_TIME_TWO_MONTHS.Value))
+                    |> double,
+                    currentBlockHeight |> double
+                )
+
+
             let factor =
-                cltvFactor * RoutingHeuristics.CltvDeltaFactor
-                + capFactor * RoutingHeuristics.CapacityFactor
+                cltvFactor * routeParams.Ratios.CLTVDeltaFactor
+                + capFactor * routeParams.Ratios.CapacityFactor
+                + ageFactor * routeParams.Ratios.AgeFactor
 
             factor * feeCost
 
@@ -326,22 +401,43 @@ type RoutingGraphData
     member this.GetChannelUpdates() =
         updates
 
-    member private this.IsRouteValid(route: seq<RoutingGraphEdge>) : bool =
-        let maxRouteLength = 20
+    member private this.GetEdgeWeightFunction
+        (paymentAmount: LNMoney)
+        (currentBlockHeight: uint32)
+        (routeParams: RouteParams)
+        : System.Func<RoutingGraphEdge, float> =
+        System.Func<RoutingGraphEdge, float>(
+            EdgeWeightCaluculation.edgeWeight
+                paymentAmount
+                currentBlockHeight
+                routeParams
+        )
+
+    member private this.IsRouteValid
+        (routeParams: RouteParams)
+        (route: seq<RoutingGraphEdge>)
+        : bool =
+        let maxRouteLength = min 20 routeParams.RouteMaxLength
+
         Seq.length route <= maxRouteLength
+        && (route |> Seq.sumBy(fun edge -> edge.Update.CLTVExpiryDelta))
+           <= routeParams.RouteMaxCLTV
 
     /// Use Hoffman-Pavley K shortest paths algorithm to find valid route
     member private this.FallbackGetRoute
         (sourceNodeId: NodeId)
         (targetNodeId: NodeId)
         (paymentAmount: LNMoney)
+        (currentBlockHeight: uint32)
+        (routeParams: RouteParams)
         =
         let hoffmanPavleyAlgorithm =
             HoffmanPavleyRankedShortestPathAlgorithm(
                 routingGraph.ToBidirectionalGraph(),
-                System.Func<RoutingGraphEdge, float>(
-                    EdgeWeightCaluculation.edgeWeight paymentAmount
-                )
+                this.GetEdgeWeightFunction
+                    paymentAmount
+                    currentBlockHeight
+                    routeParams
             )
 
         hoffmanPavleyAlgorithm.SetRootVertex sourceNodeId
@@ -351,7 +447,7 @@ type RoutingGraphData
         hoffmanPavleyAlgorithm.Compute()
 
         hoffmanPavleyAlgorithm.ComputedShortestPaths
-        |> Seq.filter this.IsRouteValid
+        |> Seq.filter(this.IsRouteValid routeParams)
         |> Seq.tryHead
         |> Option.defaultValue Seq.empty
         |> Seq.cast<IRoutingHopInfo>
@@ -366,22 +462,30 @@ type RoutingGraphData
         (sourceNodeId: NodeId)
         (targetNodeId: NodeId)
         (paymentAmount: LNMoney)
+        (currentBlockHeight: uint32)
+        (routeParams: RouteParams)
         (extraRoutes: ExtraHop list list)
         : seq<IRoutingHopInfo> =
         let tryGetPath =
             routingGraph.ShortestPathsDijkstra(
-                System.Func<RoutingGraphEdge, float>(
-                    EdgeWeightCaluculation.edgeWeight paymentAmount
-                ),
+                this.GetEdgeWeightFunction
+                    paymentAmount
+                    currentBlockHeight
+                    routeParams,
                 sourceNodeId
             )
 
         let directRoute: IRoutingHopInfo [] =
             match tryGetPath.Invoke targetNodeId with
-            | true, path when this.IsRouteValid path ->
+            | true, path when this.IsRouteValid routeParams path ->
                 path |> Seq.cast<IRoutingHopInfo> |> Seq.toArray
             | true, _ ->
-                this.FallbackGetRoute sourceNodeId targetNodeId paymentAmount
+                this.FallbackGetRoute
+                    sourceNodeId
+                    targetNodeId
+                    paymentAmount
+                    currentBlockHeight
+                    routeParams
             | false, _ -> Array.empty
 
         if Array.isEmpty directRoute then
@@ -394,6 +498,8 @@ type RoutingGraphData
                                 sourceNodeId
                                 head.NodeIdValue
                                 paymentAmount
+                                currentBlockHeight
+                                routeParams
                                 []
                             |> Seq.cast<IRoutingHopInfo>
                             |> Seq.toArray
@@ -410,7 +516,11 @@ type RoutingGraphData
             |> Seq.sortBy(fun route ->
                 route
                 |> Array.sumBy(fun hopInfo ->
-                    EdgeWeightCaluculation.edgeWeight paymentAmount hopInfo
+                    EdgeWeightCaluculation.edgeWeight
+                        paymentAmount
+                        currentBlockHeight
+                        routeParams
+                        hopInfo
                 )
             )
             |> Seq.tryHead
