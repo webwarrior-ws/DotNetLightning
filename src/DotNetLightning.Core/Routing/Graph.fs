@@ -20,6 +20,7 @@ open DotNetLightning.Payment
 
 open QuikGraph
 open QuikGraph.Algorithms
+open QuikGraph.Algorithms.RankedShortestPath
 
 
 type ChannelDesc =
@@ -325,6 +326,37 @@ type RoutingGraphData
     member this.GetChannelUpdates() =
         updates
 
+    member private this.IsRouteValid(route: seq<RoutingGraphEdge>) : bool =
+        let maxRouteLength = 20
+        Seq.length route <= maxRouteLength
+
+    /// Use Hoffman-Pavley K shortest paths algorithm to find valid route
+    member private this.FallbackGetRoute
+        (sourceNodeId: NodeId)
+        (targetNodeId: NodeId)
+        (paymentAmount: LNMoney)
+        =
+        let hoffmanPavleyAlgorithm =
+            HoffmanPavleyRankedShortestPathAlgorithm(
+                routingGraph.ToBidirectionalGraph(),
+                System.Func<RoutingGraphEdge, float>(
+                    EdgeWeightCaluculation.edgeWeight paymentAmount
+                )
+            )
+
+        hoffmanPavleyAlgorithm.SetRootVertex sourceNodeId
+        hoffmanPavleyAlgorithm.SetTargetVertex targetNodeId
+        hoffmanPavleyAlgorithm.ShortestPathCount <- 100 // should be enough?
+
+        hoffmanPavleyAlgorithm.Compute()
+
+        hoffmanPavleyAlgorithm.ComputedShortestPaths
+        |> Seq.filter this.IsRouteValid
+        |> Seq.tryHead
+        |> Option.defaultValue Seq.empty
+        |> Seq.cast<IRoutingHopInfo>
+        |> Seq.toArray
+
     /// Get shortest route from source to target node taking cahnnel fees and cltv expiry deltas into account.
     /// Don't use channels that have insufficient capacity for given paymentAmount.
     /// See EdgeWeightCaluculation.edgeWeight.
@@ -346,7 +378,10 @@ type RoutingGraphData
 
         let directRoute: IRoutingHopInfo [] =
             match tryGetPath.Invoke targetNodeId with
-            | true, path -> path |> Seq.cast<IRoutingHopInfo> |> Seq.toArray
+            | true, path when this.IsRouteValid path ->
+                path |> Seq.cast<IRoutingHopInfo> |> Seq.toArray
+            | true, _ ->
+                this.FallbackGetRoute sourceNodeId targetNodeId paymentAmount
             | false, _ -> Array.empty
 
         if Array.isEmpty directRoute then

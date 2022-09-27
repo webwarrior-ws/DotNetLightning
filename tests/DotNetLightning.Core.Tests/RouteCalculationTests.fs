@@ -600,7 +600,9 @@ let tests =
                 let graph = RoutingGraphData().Update descs updatesMap 0u
 
                 Expect.throwsT<System.ArgumentException>
-                    (fun () -> graph.GetRoute a e DEFAULT_AMOUNT_MSAT [] |> ignore)
+                    (fun () ->
+                        graph.GetRoute a e DEFAULT_AMOUNT_MSAT [] |> ignore
+                    )
                     ""
 
             testCase "route not found (source OR target node not in graph)"
@@ -617,7 +619,9 @@ let tests =
                 let graph = RoutingGraphData().Update descs updatesMap 0u
 
                 Expect.throwsT<System.ArgumentException>
-                    (fun () -> graph.GetRoute a d DEFAULT_AMOUNT_MSAT [] |> ignore)
+                    (fun () ->
+                        graph.GetRoute a d DEFAULT_AMOUNT_MSAT [] |> ignore
+                    )
                     ""
 
                 let route2 = graph.GetRoute b e DEFAULT_AMOUNT_MSAT []
@@ -1008,11 +1012,11 @@ let tests =
                     (hops2Ids(route2))
                     [ 1UL; 2UL; 3UL; 4UL ]
                     ""
-        ] (*
+
             testCase
                 "route to a destination that is not in the graph (with assisted routes)"
             <| fun _ ->
-                let updates =
+                let descs, updates =
                     [
                         makeUpdate(
                             1UL,
@@ -1045,25 +1049,15 @@ let tests =
                             None
                         )
                     ]
+                    |> List.unzip
 
-                let g = DirectedLNGraph.Create().AddEdges(updates)
+                let updatesMap = makeUpdatesMap updates
 
-                let route =
-                    Routing.findRoute
-                        (g)
-                        a
-                        e
-                        DEFAULT_AMOUNT_MSAT
-                        1
-                        (Set.empty)
-                        (Set.empty)
-                        (Set.empty)
-                        DEFAULT_ROUTE_PARAMS
-                        (BlockHeight(400000u))
+                let graph = RoutingGraphData().Update descs updatesMap 0u
 
-                Expect.isError
-                    (Result.ToFSharpCoreResult route)
-                    "there should be no e node in the graph"
+                let route = graph.GetRoute a e DEFAULT_AMOUNT_MSAT []
+
+                Expect.isEmpty route "there should be no e node in the graph"
 
                 // now we add the missing edge to reach the destination
                 let (extraDesc, extraUpdate) =
@@ -1075,351 +1069,29 @@ let tests =
                         5u,
                         None,
                         None,
-                        None
+                        Some(BlockHeightOffset16 1us)
                     )
 
                 let extraGraphEdges =
-                    Set.singleton(
-                        {
-                            GraphLabel.Desc = extraDesc
-                            Update = extraUpdate
-                        }
-                    )
+                    [
+                        [
+                            ExtraHop.TryCreate(
+                                extraDesc.A,
+                                extraDesc.ShortChannelId,
+                                extraUpdate.FeeBaseMSat,
+                                extraUpdate.FeeProportionalMillionths,
+                                extraUpdate.CLTVExpiryDelta
+                            )
+                            |> Result.deref
+                        ]
+                    ]
 
                 let route1 =
-                    Routing.findRoute
-                        g
-                        a
-                        e
-                        DEFAULT_AMOUNT_MSAT
-                        1
-                        (extraGraphEdges)
-                        (Set.empty)
-                        (Set.empty)
-                        DEFAULT_ROUTE_PARAMS
-                        (BlockHeight(400000u))
-                    |> Result.deref
+                    graph.GetRoute a e DEFAULT_AMOUNT_MSAT extraGraphEdges
 
                 Expect.sequenceEqual
                     (hops2Ids(route1))
                     [ 1UL; 2UL; 3UL; 4UL ]
-                    ""
-
-            testCase
-                "Verify that extra hops takes precedence over known channels"
-            <| fun _ ->
-                let updates =
-                    [
-                        makeUpdate(
-                            1UL,
-                            a,
-                            b,
-                            LNMoney.MilliSatoshis(10),
-                            10u,
-                            None,
-                            None,
-                            None
-                        )
-                        makeUpdate(
-                            2UL,
-                            b,
-                            c,
-                            LNMoney.MilliSatoshis(10),
-                            10u,
-                            None,
-                            None,
-                            None
-                        )
-                        makeUpdate(
-                            3UL,
-                            c,
-                            d,
-                            LNMoney.MilliSatoshis(10),
-                            10u,
-                            None,
-                            None,
-                            None
-                        )
-                        makeUpdate(
-                            4UL,
-                            d,
-                            e,
-                            LNMoney.MilliSatoshis(10),
-                            10u,
-                            None,
-                            None,
-                            None
-                        )
-                    ]
-
-                let g = DirectedLNGraph.Create().AddEdges(updates)
-
-                let route1 =
-                    Routing.findRoute
-                        g
-                        a
-                        e
-                        DEFAULT_AMOUNT_MSAT
-                        1
-                        (Set.empty)
-                        (Set.empty)
-                        (Set.empty)
-                        DEFAULT_ROUTE_PARAMS
-                        (BlockHeight(400000u))
-                    |> Result.deref
-
-                Expect.sequenceEqual
-                    (hops2Ids(route1))
-                    [ 1UL; 2UL; 3UL; 4UL ]
-                    ""
-
-                Expect.equal
-                    ((route1 |> Seq.item 1).LastUpdateValue.FeeBaseMSat)
-                    (LNMoney.MilliSatoshis(10))
-                    ""
-
-                let (extraDesc, extraUpdate) =
-                    makeUpdate(
-                        2UL,
-                        b,
-                        c,
-                        LNMoney.MilliSatoshis(5),
-                        5u,
-                        None,
-                        None,
-                        None
-                    )
-
-                let extraGraphEdges =
-                    Set.singleton(
-                        {
-                            GraphLabel.Desc = extraDesc
-                            Update = extraUpdate
-                        }
-                    )
-
-                let route2 =
-                    Routing.findRoute
-                        g
-                        a
-                        e
-                        DEFAULT_AMOUNT_MSAT
-                        1
-                        extraGraphEdges
-                        (Set.empty)
-                        (Set.empty)
-                        DEFAULT_ROUTE_PARAMS
-                        (BlockHeight(400000u))
-                    |> Result.deref
-
-                Expect.sequenceEqual
-                    (hops2Ids(route2))
-                    [ 1UL; 2UL; 3UL; 4UL ]
-                    ""
-
-                Expect.equal
-                    ((route2 |> Seq.item 1).LastUpdateValue.FeeBaseMSat)
-                    (LNMoney.MilliSatoshis(5))
-                    ""
-
-            testPropertyWithConfig fsCheckConfig "compute ignored channels"
-            <| fun (f: NodeId, g: NodeId, h: NodeId, i: NodeId, j: NodeId) ->
-                let channels =
-                    Map.empty
-                    |> Map.add
-                        (ShortChannelId.FromUInt64(1UL))
-                        (makeChannelAnn(1UL, a, b))
-                    |> Map.add
-                        (ShortChannelId.FromUInt64(2UL))
-                        (makeChannelAnn(2UL, b, c))
-                    |> Map.add
-                        (ShortChannelId.FromUInt64(3UL))
-                        (makeChannelAnn(3UL, c, d))
-                    |> Map.add
-                        (ShortChannelId.FromUInt64(4UL))
-                        (makeChannelAnn(4UL, d, e))
-                    |> Map.add
-                        (ShortChannelId.FromUInt64(5UL))
-                        (makeChannelAnn(5UL, f, g))
-                    |> Map.add
-                        (ShortChannelId.FromUInt64(6UL))
-                        (makeChannelAnn(6UL, f, h))
-                    |> Map.add
-                        (ShortChannelId.FromUInt64(7UL))
-                        (makeChannelAnn(7UL, h, i))
-                    |> Map.add
-                        (ShortChannelId.FromUInt64(8UL))
-                        (makeChannelAnn(8UL, i, j))
-
-                let updates =
-                    [
-                        makeUpdate(
-                            1UL,
-                            a,
-                            b,
-                            LNMoney.MilliSatoshis(10),
-                            10u,
-                            None,
-                            None,
-                            None
-                        )
-                        makeUpdate(
-                            2UL,
-                            b,
-                            c,
-                            LNMoney.MilliSatoshis(10),
-                            10u,
-                            None,
-                            None,
-                            None
-                        )
-                        makeUpdate(
-                            2UL,
-                            c,
-                            b,
-                            LNMoney.MilliSatoshis(10),
-                            10u,
-                            None,
-                            None,
-                            None
-                        )
-                        makeUpdate(
-                            3UL,
-                            c,
-                            d,
-                            LNMoney.MilliSatoshis(10),
-                            10u,
-                            None,
-                            None,
-                            None
-                        )
-                        makeUpdate(
-                            4UL,
-                            d,
-                            e,
-                            LNMoney.MilliSatoshis(10),
-                            10u,
-                            None,
-                            None,
-                            None
-                        )
-                        makeUpdate(
-                            5UL,
-                            f,
-                            g,
-                            LNMoney.MilliSatoshis(10),
-                            10u,
-                            None,
-                            None,
-                            None
-                        )
-                        makeUpdate(
-                            6UL,
-                            f,
-                            h,
-                            LNMoney.MilliSatoshis(10),
-                            10u,
-                            None,
-                            None,
-                            None
-                        )
-                        makeUpdate(
-                            7UL,
-                            h,
-                            i,
-                            LNMoney.MilliSatoshis(10),
-                            10u,
-                            None,
-                            None,
-                            None
-                        )
-                        makeUpdate(
-                            8UL,
-                            i,
-                            j,
-                            LNMoney.MilliSatoshis(10),
-                            10u,
-                            None,
-                            None,
-                            None
-                        )
-                    ]
-
-                let publicChannels =
-                    channels
-                    |> Map.map(fun scid ann ->
-                        let (_, update) =
-                            updates
-                            |> Seq.find(fun (upd, _) ->
-                                upd.ShortChannelId = scid
-                            )
-
-                        let (maybeUpdate1, maybeUpdate2) =
-                            if (update.ChannelFlags &&& 1uy = 1uy) then
-                                (Some(update), None)
-                            else
-                                (None, Some(update))
-
-                        let pc =
-                            PublicChannel.Create(
-                                ann,
-                                TxId.Zero,
-                                Money.Satoshis(1000L),
-                                maybeUpdate1,
-                                maybeUpdate2
-                            )
-
-                        (pc)
-                    )
-
-                let ignored =
-                    Routing.getIgnoredChannelDesc
-                        (publicChannels)
-                        (Set [ c; j; (NodeId((new Key()).PubKey)) ])
-                    |> Set
-
-                Expect.isTrue
-                    (ignored.Contains(
-                        {
-                            ChannelDesc.ShortChannelId =
-                                ShortChannelId.FromUInt64(2UL)
-                            A = b
-                            B = c
-                        }
-                    ))
-                    ""
-
-                Expect.isTrue
-                    (ignored.Contains(
-                        {
-                            ChannelDesc.ShortChannelId =
-                                ShortChannelId.FromUInt64(2UL)
-                            A = c
-                            B = b
-                        }
-                    ))
-                    ""
-
-                Expect.isTrue
-                    (ignored.Contains(
-                        {
-                            ChannelDesc.ShortChannelId =
-                                ShortChannelId.FromUInt64(3UL)
-                            A = c
-                            B = d
-                        }
-                    ))
-                    ""
-
-                Expect.isTrue
-                    (ignored.Contains(
-                        {
-                            ChannelDesc.ShortChannelId =
-                                ShortChannelId.FromUInt64(8UL)
-                            A = i
-                            B = j
-                        }
-                    ))
                     ""
 
             testCase "limit routes to 20 hops"
@@ -1429,7 +1101,7 @@ let tests =
                         for _ in 0..22 -> (new Key()).PubKey |> NodeId
                     ]
 
-                let updates =
+                let descs, updates =
                     Seq.zip
                         (nodes |> List.rev |> List.skip 1 |> List.rev)
                         (nodes |> Seq.skip 1) // (0, 1) :: (1, 2) :: ...
@@ -1445,22 +1117,15 @@ let tests =
                             None
                         )
                     )
+                    |> Seq.toList
+                    |> List.unzip
 
-                let g = DirectedLNGraph.Create().AddEdges(updates)
+                let updatesMap = makeUpdatesMap updates
+
+                let graph = RoutingGraphData().Update descs updatesMap 0u
 
                 let r18 =
-                    (Routing.findRoute
-                        g
-                        (nodes.[0])
-                        nodes.[18]
-                        DEFAULT_AMOUNT_MSAT
-                        1
-                        (Set.empty)
-                        (Set.empty)
-                        (Set.empty)
-                        DEFAULT_ROUTE_PARAMS
-                        (BlockHeight(400000u)))
-                    |> Result.deref
+                    graph.GetRoute nodes.[0] nodes.[18] DEFAULT_AMOUNT_MSAT []
 
                 Expect.sequenceEqual
                     (hops2Ids(r18))
@@ -1468,18 +1133,7 @@ let tests =
                     ""
 
                 let r19 =
-                    (Routing.findRoute
-                        g
-                        (nodes.[0])
-                        nodes.[19]
-                        DEFAULT_AMOUNT_MSAT
-                        1
-                        (Set.empty)
-                        (Set.empty)
-                        (Set.empty)
-                        DEFAULT_ROUTE_PARAMS
-                        (BlockHeight(400000u)))
-                    |> Result.deref
+                    graph.GetRoute nodes.[0] nodes.[19] DEFAULT_AMOUNT_MSAT []
 
                 Expect.sequenceEqual
                     (hops2Ids(r19))
@@ -1487,18 +1141,7 @@ let tests =
                     ""
 
                 let r20 =
-                    (Routing.findRoute
-                        g
-                        (nodes.[0])
-                        nodes.[20]
-                        DEFAULT_AMOUNT_MSAT
-                        1
-                        (Set.empty)
-                        (Set.empty)
-                        (Set.empty)
-                        DEFAULT_ROUTE_PARAMS
-                        (BlockHeight(400000u)))
-                    |> Result.deref
+                    graph.GetRoute nodes.[0] nodes.[20] DEFAULT_AMOUNT_MSAT []
 
                 Expect.sequenceEqual
                     (hops2Ids(r20))
@@ -1506,20 +1149,10 @@ let tests =
                     ""
 
                 let r21 =
-                    (Routing.findRoute
-                        g
-                        (nodes.[0])
-                        nodes.[21]
-                        DEFAULT_AMOUNT_MSAT
-                        1
-                        (Set.empty)
-                        (Set.empty)
-                        (Set.empty)
-                        DEFAULT_ROUTE_PARAMS
-                        (BlockHeight(400000u)))
+                    graph.GetRoute nodes.[0] nodes.[21] DEFAULT_AMOUNT_MSAT []
 
-                Expect.isError (Result.ToFSharpCoreResult r21) ""
-
+                Expect.isEmpty r21 ""
+        ] (*
             testCase "ignore cheaper route when it has more than 20 hops"
             <| fun _ ->
                 let nodes =
