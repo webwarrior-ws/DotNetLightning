@@ -188,7 +188,7 @@ let tests =
     testList
         "Route Calculation"
         [
-            let calculateRouteSimple() =
+            let calculateRouteSimple routeParams =
                 let descs, updates =
                     [
                         makeUpdate(
@@ -243,7 +243,7 @@ let tests =
                         e
                         Constants.DEFAULT_AMOUNT_MSAT
                         400000u
-                        DEFAULT_ROUTE_PARAMS
+                        routeParams
                         []
 
                 Expect.sequenceEqual
@@ -251,7 +251,22 @@ let tests =
                     ([ 1UL; 2UL; 3UL; 4UL ])
                     ""
 
-            testCase "Calculate simple route" <| fun _ -> calculateRouteSimple()
+            testCase "Calculate simple route"
+            <| fun _ -> calculateRouteSimple DEFAULT_ROUTE_PARAMS
+
+            testCase "Check fee against max pct properly"
+            <| fun _ ->
+                // fee is acceptable if it is either
+                // - below our maximum fee base
+                // - below our maximum fraction of the paid amount
+
+                // here we have a maximum fee base of 1 msat, and all our updates have a base fee of 10 msat
+                // so our fee will always be above the base fee, and we will always check that it is below our maximum percentage
+                // of the amount being paid
+                calculateRouteSimple
+                    { DEFAULT_ROUTE_PARAMS with
+                        MaxFeeBase = LNMoney.One
+                    }
 
             testCase "Calculate the shortest path (correct fees)"
             <| fun _ ->

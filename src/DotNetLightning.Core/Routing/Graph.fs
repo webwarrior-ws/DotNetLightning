@@ -141,7 +141,7 @@ type WeightRatios =
 
 type RouteParams =
     {
-        Randomize: bool
+        Randomize: bool // not used
         MaxFeeBase: LNMoney
         MaxFeePCT: double
         RouteMaxLength: int
@@ -418,13 +418,28 @@ type RoutingGraphData
 
     member private this.IsRouteValid
         (routeParams: RouteParams)
+        (paymentAmount: LNMoney)
         (route: seq<RoutingGraphEdge>)
         : bool =
         let maxRouteLength = min 20 routeParams.RouteMaxLength
 
+        let totalFee =
+            Seq.foldBack
+                (fun edge acc ->
+                    acc + EdgeWeightCaluculation.edgeFeeCost acc edge
+                )
+                route
+                paymentAmount
+            - paymentAmount
+
+        let feePct =
+            float(totalFee.MilliSatoshi) / float(paymentAmount.MilliSatoshi)
+
         Seq.length route <= maxRouteLength
         && (route |> Seq.sumBy(fun edge -> edge.Update.CLTVExpiryDelta))
            <= routeParams.RouteMaxCLTV
+        && (totalFee <= routeParams.MaxFeeBase
+            || feePct <= routeParams.MaxFeePCT)
 
     /// Use Hoffman-Pavley K shortest paths algorithm to find valid route
     member private this.FallbackGetRoute
@@ -450,7 +465,7 @@ type RoutingGraphData
         hoffmanPavleyAlgorithm.Compute()
 
         hoffmanPavleyAlgorithm.ComputedShortestPaths
-        |> Seq.filter(this.IsRouteValid routeParams)
+        |> Seq.filter(this.IsRouteValid routeParams paymentAmount)
         |> Seq.tryHead
         |> Option.defaultValue Seq.empty
         |> Seq.cast<IRoutingHopInfo>
@@ -480,7 +495,7 @@ type RoutingGraphData
 
         let directRoute: IRoutingHopInfo [] =
             match tryGetPath.Invoke targetNodeId with
-            | true, path when this.IsRouteValid routeParams path ->
+            | true, path when this.IsRouteValid routeParams paymentAmount path ->
                 path |> Seq.cast<IRoutingHopInfo> |> Seq.toArray
             | true, _ ->
                 this.FallbackGetRoute
