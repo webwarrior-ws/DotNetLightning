@@ -34,18 +34,18 @@ let makeChannelAnnCore(shortChannelId: ShortChannelId, nodeIdA, nodeIdB) =
     let isNode1(localNodeId: NodeId, remoteNodeId: NodeId) =
         localNodeId > remoteNodeId
 
-    let (nodeId1, nodeId2) =
+    let nodeId1, nodeId2 =
         if isNode1(nodeIdA, nodeIdB) then
             nodeIdA, nodeIdB
         else
-            (nodeIdB, nodeIdA)
+            nodeIdB, nodeIdA
 
     {
         UnsignedChannelAnnouncementMsg.ShortChannelId = shortChannelId
         NodeId1 = nodeId1
         NodeId2 = nodeId2
-        BitcoinKey1 = ((new Key()).PubKey |> ComparablePubKey)
-        BitcoinKey2 = ((new Key()).PubKey |> ComparablePubKey)
+        BitcoinKey1 = (new Key()).PubKey |> ComparablePubKey
+        BitcoinKey2 = (new Key()).PubKey |> ComparablePubKey
         ChainHash = Network.RegTest.GenesisHash
         Features = FeatureBits.Zero
         ExcessData = [||]
@@ -53,7 +53,7 @@ let makeChannelAnnCore(shortChannelId: ShortChannelId, nodeIdA, nodeIdB) =
 
 let makeChannelAnn(shortChannelId: uint64, nodeIdA: NodeId, nodeIdB: NodeId) =
     makeChannelAnnCore(
-        ShortChannelId.FromUInt64(shortChannelId),
+        ShortChannelId.FromUInt64 shortChannelId,
         nodeIdA,
         nodeIdB
     )
@@ -92,7 +92,7 @@ let makeUpdateCore
         cltvDelta: option<BlockHeightOffset16>
     ) : (ChannelDesc * UnsignedChannelUpdateMsg) =
     let minHtlc = Option.defaultValue Constants.DEFAULT_AMOUNT_MSAT minHtlc
-    let cltvDelta = Option.defaultValue (BlockHeightOffset16(0us)) cltvDelta
+    let cltvDelta = Option.defaultValue (BlockHeightOffset16 0us) cltvDelta
 
     let desc =
         {
@@ -146,7 +146,7 @@ let makeUpdate
 
 let makeUpdate2(s, a, b, feeBase, feeProp, minHTLC, maxHTLC, cltvDelta) =
     makeUpdateCore(
-        ShortChannelId.ParseUnsafe(s),
+        ShortChannelId.ParseUnsafe s,
         a,
         b,
         feeBase,
@@ -165,7 +165,7 @@ let makeUpdatesMap(updateMsgs: seq<UnsignedChannelUpdateMsg>) =
     for updMsg in updateMsgs do
         let oldValue =
             match updatesMap |> Map.tryFind updMsg.ShortChannelId with
-            | Some(updates) -> updates
+            | Some updates -> updates
             | None -> ChannelUpdates.Empty
 
         updatesMap <-
@@ -195,7 +195,7 @@ let tests =
                             1UL,
                             a,
                             b,
-                            LNMoney.MilliSatoshis(1L),
+                            LNMoney.MilliSatoshis 1L,
                             10u,
                             None,
                             None,
@@ -205,7 +205,7 @@ let tests =
                             2UL,
                             b,
                             c,
-                            LNMoney.MilliSatoshis(1L),
+                            LNMoney.MilliSatoshis 1L,
                             10u,
                             None,
                             None,
@@ -215,7 +215,7 @@ let tests =
                             3UL,
                             c,
                             d,
-                            LNMoney.MilliSatoshis(1L),
+                            LNMoney.MilliSatoshis 1L,
                             10u,
                             None,
                             None,
@@ -225,7 +225,7 @@ let tests =
                             4UL,
                             d,
                             e,
-                            LNMoney.MilliSatoshis(1L),
+                            LNMoney.MilliSatoshis 1L,
                             10u,
                             None,
                             None,
@@ -248,7 +248,7 @@ let tests =
 
                 Expect.sequenceEqual
                     (route |> hops2Ids)
-                    ([ 1UL; 2UL; 3UL; 4UL ])
+                    [ 1UL; 2UL; 3UL; 4UL ]
                     ""
 
             testCase "Calculate simple route"
@@ -270,7 +270,7 @@ let tests =
 
             testCase "Calculate the shortest path (correct fees)"
             <| fun _ ->
-                let amount = LNMoney.MilliSatoshis(10000L)
+                let amount = LNMoney.MilliSatoshis 10000L
                 let expectedCost = 10007L |> LNMoney.MilliSatoshis
 
                 let descs, updates =
@@ -281,7 +281,7 @@ let tests =
                             b,
                             LNMoney.One,
                             200u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
                             None
                         )
@@ -291,7 +291,7 @@ let tests =
                             e,
                             LNMoney.One,
                             200u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
                             None
                         )
@@ -301,7 +301,7 @@ let tests =
                             c,
                             LNMoney.One,
                             300u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
                             None
                         )
@@ -311,7 +311,7 @@ let tests =
                             d,
                             LNMoney.One,
                             400u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
                             None
                         )
@@ -321,7 +321,7 @@ let tests =
                             f,
                             LNMoney.One,
                             400u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
                             None
                         )
@@ -331,7 +331,7 @@ let tests =
                             d,
                             LNMoney.One,
                             100u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
                             None
                         )
@@ -347,7 +347,7 @@ let tests =
 
                 let totalCost = totalRouteCost amount route
 
-                Expect.sequenceEqual (hops2Ids(route)) [ 4UL; 5UL; 6UL ] ""
+                Expect.sequenceEqual (hops2Ids route) [ 4UL; 5UL; 6UL ] ""
                 Expect.equal totalCost expectedCost ""
 
             // FIXME: handle situations like this in future
@@ -385,7 +385,7 @@ let tests =
                             1UL,
                             a,
                             b,
-                            LNMoney.MilliSatoshis(5L),
+                            LNMoney.MilliSatoshis 5L,
                             0u,
                             None,
                             None,
@@ -395,7 +395,7 @@ let tests =
                             2UL,
                             a,
                             d,
-                            LNMoney.MilliSatoshis(15L),
+                            LNMoney.MilliSatoshis 15L,
                             0u,
                             None,
                             None,
@@ -405,7 +405,7 @@ let tests =
                             3UL,
                             b,
                             c,
-                            LNMoney.MilliSatoshis(5L),
+                            LNMoney.MilliSatoshis 5L,
                             0u,
                             None,
                             None,
@@ -415,7 +415,7 @@ let tests =
                             4UL,
                             c,
                             d,
-                            LNMoney.MilliSatoshis(5L),
+                            LNMoney.MilliSatoshis 5L,
                             0u,
                             None,
                             None,
@@ -425,7 +425,7 @@ let tests =
                             5UL,
                             d,
                             e,
-                            LNMoney.MilliSatoshis(5L),
+                            LNMoney.MilliSatoshis 5L,
                             0u,
                             None,
                             None,
@@ -447,7 +447,7 @@ let tests =
                         DEFAULT_ROUTE_PARAMS
                         []
 
-                Expect.sequenceEqual (hops2Ids(route)) [ 2UL; 5UL ] ""
+                Expect.sequenceEqual (hops2Ids route) [ 2UL; 5UL ] ""
 
             testCase "Blcklist channel"
             <| fun _ ->
@@ -473,13 +473,10 @@ let tests =
                         DEFAULT_ROUTE_PARAMS
                         []
 
-                Expect.sequenceEqual
-                    (hops2Ids(route1))
-                    [ 1UL; 2UL; 3UL; 4UL ]
-                    ""
+                Expect.sequenceEqual (hops2Ids route1) [ 1UL; 2UL; 3UL; 4UL ] ""
 
                 let graphWithRemovedEdge =
-                    graph.BlacklistChannel <| ShortChannelId.FromUInt64(3UL)
+                    graph.BlacklistChannel <| ShortChannelId.FromUInt64 3UL
 
                 let route2 =
                     graphWithRemovedEdge.GetRoute
@@ -512,7 +509,7 @@ let tests =
                             0u,
                             None,
                             Some(
-                                DEFAULT_AMOUNT_MSAT + LNMoney.MilliSatoshis(50L)
+                                DEFAULT_AMOUNT_MSAT + LNMoney.MilliSatoshis 50L
                             ),
                             None
                         )
@@ -533,7 +530,7 @@ let tests =
                         DEFAULT_ROUTE_PARAMS
                         []
 
-                Expect.sequenceEqual (hops2Ids(route)) [ 1UL; 2UL; 3UL ] ""
+                Expect.sequenceEqual (hops2Ids route) [ 1UL; 2UL; 3UL ] ""
 
             testCase
                 "find a route using channels with htlcMinimumMsat close to the payment amount"
@@ -548,7 +545,7 @@ let tests =
                             LNMoney.One,
                             0u,
                             Some(
-                                DEFAULT_AMOUNT_MSAT + LNMoney.MilliSatoshis(50L)
+                                DEFAULT_AMOUNT_MSAT + LNMoney.MilliSatoshis 50L
                             ),
                             None,
                             None
@@ -591,7 +588,7 @@ let tests =
                             2UL,
                             g,
                             h,
-                            LNMoney.MilliSatoshis(5L),
+                            LNMoney.MilliSatoshis 5L,
                             5u,
                             None,
                             None,
@@ -601,7 +598,7 @@ let tests =
                             6UL,
                             g,
                             h,
-                            LNMoney.MilliSatoshis(0L),
+                            LNMoney.MilliSatoshis 0L,
                             0u,
                             None,
                             None,
@@ -611,7 +608,7 @@ let tests =
                             3UL,
                             h,
                             i,
-                            LNMoney.MilliSatoshis(0L),
+                            LNMoney.MilliSatoshis 0L,
                             0u,
                             None,
                             None,
@@ -633,7 +630,7 @@ let tests =
                         DEFAULT_ROUTE_PARAMS
                         []
 
-                Expect.sequenceEqual (hops2Ids(route)) [ 1UL; 6UL; 3UL ] ""
+                Expect.sequenceEqual (hops2Ids route) [ 1UL; 6UL; 3UL ] ""
 
             testCase "Calculate longer but cheaper route"
             <| fun _ ->
@@ -647,7 +644,7 @@ let tests =
                             5UL,
                             b,
                             e,
-                            LNMoney.MilliSatoshis(10L),
+                            LNMoney.MilliSatoshis 10L,
                             10u,
                             None,
                             None,
@@ -669,7 +666,7 @@ let tests =
                         DEFAULT_ROUTE_PARAMS
                         []
 
-                Expect.sequenceEqual (hops2Ids(route)) [ 1UL; 2UL; 3UL; 4UL ] ""
+                Expect.sequenceEqual (hops2Ids route) [ 1UL; 2UL; 3UL; 4UL ] ""
 
             testCase "route from node not present in graph"
             <| fun _ ->
@@ -749,7 +746,7 @@ let tests =
                             LNMoney.Zero,
                             0u,
                             None,
-                            Some(DEFAULT_AMOUNT_MSAT),
+                            Some DEFAULT_AMOUNT_MSAT,
                             None
                         )
                         makeUpdateSimple(3UL, c, d)
@@ -765,7 +762,7 @@ let tests =
                             c,
                             LNMoney.Zero,
                             0u,
-                            Some(DEFAULT_AMOUNT_MSAT),
+                            Some DEFAULT_AMOUNT_MSAT,
                             None,
                             None
                         )
@@ -850,7 +847,7 @@ let tests =
                         DEFAULT_ROUTE_PARAMS
                         []
 
-                Expect.sequenceEqual (hops2Ids(route)) [ 1UL ] ""
+                Expect.sequenceEqual (hops2Ids route) [ 1UL ] ""
 
             testCase "directed graph"
             <| fun _ ->
@@ -876,10 +873,7 @@ let tests =
                         DEFAULT_ROUTE_PARAMS
                         []
 
-                Expect.sequenceEqual
-                    (hops2Ids(route1))
-                    [ 1UL; 2UL; 3UL; 4UL ]
-                    ""
+                Expect.sequenceEqual (hops2Ids route1) [ 1UL; 2UL; 3UL; 4UL ] ""
 
                 let route2 =
                     graph.GetRoute
@@ -898,13 +892,13 @@ let tests =
                     {
                         UnsignedChannelUpdateMsg.ChainHash =
                             Network.RegTest.GenesisHash
-                        ShortChannelId = ShortChannelId.FromUInt64(1UL)
+                        ShortChannelId = ShortChannelId.FromUInt64 1UL
                         Timestamp = 0u
                         MessageFlags = 0uy
                         ChannelFlags = 0uy
-                        CLTVExpiryDelta = BlockHeightOffset16(1us)
-                        HTLCMinimumMSat = LNMoney.MilliSatoshis(42L)
-                        FeeBaseMSat = LNMoney.MilliSatoshis(2500L)
+                        CLTVExpiryDelta = BlockHeightOffset16 1us
+                        HTLCMinimumMSat = LNMoney.MilliSatoshis 42L
+                        FeeBaseMSat = LNMoney.MilliSatoshis 2500L
                         FeeProportionalMillionths = 140u
                         HTLCMaximumMSat = Some DEFAULT_HTLC_MAXIMUM_MSAT
                     }
@@ -913,13 +907,13 @@ let tests =
                     {
                         UnsignedChannelUpdateMsg.ChainHash =
                             Network.RegTest.GenesisHash
-                        ShortChannelId = ShortChannelId.FromUInt64(1UL)
+                        ShortChannelId = ShortChannelId.FromUInt64 1UL
                         Timestamp = 1u
                         MessageFlags = 0uy
                         ChannelFlags = 1uy
-                        CLTVExpiryDelta = BlockHeightOffset16(1us)
-                        HTLCMinimumMSat = LNMoney.MilliSatoshis(43L)
-                        FeeBaseMSat = LNMoney.MilliSatoshis(2501L)
+                        CLTVExpiryDelta = BlockHeightOffset16 1us
+                        HTLCMinimumMSat = LNMoney.MilliSatoshis 43L
+                        FeeBaseMSat = LNMoney.MilliSatoshis 2501L
                         FeeProportionalMillionths = 141u
                         HTLCMaximumMSat = Some DEFAULT_HTLC_MAXIMUM_MSAT
                     }
@@ -928,13 +922,13 @@ let tests =
                     {
                         UnsignedChannelUpdateMsg.ChainHash =
                             Network.RegTest.GenesisHash
-                        ShortChannelId = ShortChannelId.FromUInt64(2UL)
+                        ShortChannelId = ShortChannelId.FromUInt64 2UL
                         Timestamp = 1u
                         MessageFlags = 0uy
                         ChannelFlags = 0uy
-                        CLTVExpiryDelta = BlockHeightOffset16(1us)
-                        HTLCMinimumMSat = LNMoney.MilliSatoshis(44L)
-                        FeeBaseMSat = LNMoney.MilliSatoshis(2502L)
+                        CLTVExpiryDelta = BlockHeightOffset16 1us
+                        HTLCMinimumMSat = LNMoney.MilliSatoshis 44L
+                        FeeBaseMSat = LNMoney.MilliSatoshis 2502L
                         FeeProportionalMillionths = 142u
                         HTLCMaximumMSat = Some DEFAULT_HTLC_MAXIMUM_MSAT
                     }
@@ -943,13 +937,13 @@ let tests =
                     {
                         UnsignedChannelUpdateMsg.ChainHash =
                             Network.RegTest.GenesisHash
-                        ShortChannelId = ShortChannelId.FromUInt64(2UL)
+                        ShortChannelId = ShortChannelId.FromUInt64 2UL
                         Timestamp = 1u
                         MessageFlags = 0uy
                         ChannelFlags = 1uy
-                        CLTVExpiryDelta = BlockHeightOffset16(1us)
-                        HTLCMinimumMSat = LNMoney.MilliSatoshis(45L)
-                        FeeBaseMSat = LNMoney.MilliSatoshis(2503L)
+                        CLTVExpiryDelta = BlockHeightOffset16 1us
+                        HTLCMinimumMSat = LNMoney.MilliSatoshis 45L
+                        FeeBaseMSat = LNMoney.MilliSatoshis 2503L
                         FeeProportionalMillionths = 143u
                         HTLCMaximumMSat = Some DEFAULT_HTLC_MAXIMUM_MSAT
                     }
@@ -958,29 +952,28 @@ let tests =
                     {
                         UnsignedChannelUpdateMsg.ChainHash =
                             Network.RegTest.GenesisHash
-                        ShortChannelId = ShortChannelId.FromUInt64(3UL)
+                        ShortChannelId = ShortChannelId.FromUInt64 3UL
                         Timestamp = 1u
                         MessageFlags = 1uy
                         ChannelFlags = 0uy
-                        CLTVExpiryDelta = BlockHeightOffset16(1us)
-                        HTLCMinimumMSat = LNMoney.MilliSatoshis(46L)
-                        FeeBaseMSat = LNMoney.MilliSatoshis(2504L)
+                        CLTVExpiryDelta = BlockHeightOffset16 1us
+                        HTLCMinimumMSat = LNMoney.MilliSatoshis 46L
+                        FeeBaseMSat = LNMoney.MilliSatoshis 2504L
                         FeeProportionalMillionths = 144u
-                        HTLCMaximumMSat =
-                            Some(LNMoney.MilliSatoshis(500000000L))
+                        HTLCMaximumMSat = Some(LNMoney.MilliSatoshis 500000000L)
                     }
 
                 let udc =
                     {
                         UnsignedChannelUpdateMsg.ChainHash =
                             Network.RegTest.GenesisHash
-                        ShortChannelId = ShortChannelId.FromUInt64(3UL)
+                        ShortChannelId = ShortChannelId.FromUInt64 3UL
                         Timestamp = 1u
                         MessageFlags = 0uy
                         ChannelFlags = 1uy
-                        CLTVExpiryDelta = BlockHeightOffset16(1us)
-                        HTLCMinimumMSat = LNMoney.MilliSatoshis(47L)
-                        FeeBaseMSat = LNMoney.MilliSatoshis(2505L)
+                        CLTVExpiryDelta = BlockHeightOffset16 1us
+                        HTLCMinimumMSat = LNMoney.MilliSatoshis 47L
+                        FeeBaseMSat = LNMoney.MilliSatoshis 2505L
                         FeeProportionalMillionths = 145u
                         HTLCMaximumMSat = Some DEFAULT_HTLC_MAXIMUM_MSAT
                     }
@@ -989,13 +982,13 @@ let tests =
                     {
                         UnsignedChannelUpdateMsg.ChainHash =
                             Network.RegTest.GenesisHash
-                        ShortChannelId = ShortChannelId.FromUInt64(4UL)
+                        ShortChannelId = ShortChannelId.FromUInt64 4UL
                         Timestamp = 1u
                         MessageFlags = 0uy
                         ChannelFlags = 0uy
-                        CLTVExpiryDelta = BlockHeightOffset16(1us)
-                        HTLCMinimumMSat = LNMoney.MilliSatoshis(48L)
-                        FeeBaseMSat = LNMoney.MilliSatoshis(2506L)
+                        CLTVExpiryDelta = BlockHeightOffset16 1us
+                        HTLCMinimumMSat = LNMoney.MilliSatoshis 48L
+                        FeeBaseMSat = LNMoney.MilliSatoshis 2506L
                         FeeProportionalMillionths = 146u
                         HTLCMaximumMSat = Some DEFAULT_HTLC_MAXIMUM_MSAT
                     }
@@ -1004,13 +997,13 @@ let tests =
                     {
                         UnsignedChannelUpdateMsg.ChainHash =
                             Network.RegTest.GenesisHash
-                        ShortChannelId = ShortChannelId.FromUInt64(4UL)
+                        ShortChannelId = ShortChannelId.FromUInt64 4UL
                         Timestamp = 1u
                         MessageFlags = 0uy
                         ChannelFlags = 1uy
-                        CLTVExpiryDelta = BlockHeightOffset16(1us)
-                        HTLCMinimumMSat = LNMoney.MilliSatoshis(49L)
-                        FeeBaseMSat = LNMoney.MilliSatoshis(2507L)
+                        CLTVExpiryDelta = BlockHeightOffset16 1us
+                        HTLCMinimumMSat = LNMoney.MilliSatoshis 49L
+                        FeeBaseMSat = LNMoney.MilliSatoshis 2507L
                         FeeProportionalMillionths = 147u
                         HTLCMaximumMSat = Some DEFAULT_HTLC_MAXIMUM_MSAT
                     }
@@ -1020,7 +1013,7 @@ let tests =
                     |> Map.add
                         ({
                              ChannelDesc.ShortChannelId =
-                                 ShortChannelId.FromUInt64(1UL)
+                                 ShortChannelId.FromUInt64 1UL
                              A = a
                              B = b
                          })
@@ -1028,7 +1021,7 @@ let tests =
                     |> Map.add
                         ({
                              ChannelDesc.ShortChannelId =
-                                 ShortChannelId.FromUInt64(1UL)
+                                 ShortChannelId.FromUInt64 1UL
                              A = b
                              B = a
                          })
@@ -1036,7 +1029,7 @@ let tests =
                     |> Map.add
                         ({
                              ChannelDesc.ShortChannelId =
-                                 ShortChannelId.FromUInt64(2UL)
+                                 ShortChannelId.FromUInt64 2UL
                              A = b
                              B = c
                          })
@@ -1044,7 +1037,7 @@ let tests =
                     |> Map.add
                         ({
                              ChannelDesc.ShortChannelId =
-                                 ShortChannelId.FromUInt64(2UL)
+                                 ShortChannelId.FromUInt64 2UL
                              A = c
                              B = b
                          })
@@ -1052,7 +1045,7 @@ let tests =
                     |> Map.add
                         ({
                              ChannelDesc.ShortChannelId =
-                                 ShortChannelId.FromUInt64(3UL)
+                                 ShortChannelId.FromUInt64 3UL
                              A = c
                              B = d
                          })
@@ -1060,7 +1053,7 @@ let tests =
                     |> Map.add
                         ({
                              ChannelDesc.ShortChannelId =
-                                 ShortChannelId.FromUInt64(3UL)
+                                 ShortChannelId.FromUInt64 3UL
                              A = d
                              B = c
                          })
@@ -1068,7 +1061,7 @@ let tests =
                     |> Map.add
                         ({
                              ChannelDesc.ShortChannelId =
-                                 ShortChannelId.FromUInt64(4UL)
+                                 ShortChannelId.FromUInt64 4UL
                              A = d
                              B = e
                          })
@@ -1076,7 +1069,7 @@ let tests =
                     |> Map.add
                         ({
                              ChannelDesc.ShortChannelId =
-                                 ShortChannelId.FromUInt64(4UL)
+                                 ShortChannelId.FromUInt64 4UL
                              A = e
                              B = d
                          })
@@ -1145,7 +1138,7 @@ let tests =
 
                 let graph = RoutingGraphData().Update descs updatesMap 0u
 
-                let ignoredChannel = ShortChannelId.FromUInt64(3UL)
+                let ignoredChannel = ShortChannelId.FromUInt64 3UL
 
                 let graphWithBlacklist = graph.BlacklistChannel ignoredChannel
 
@@ -1170,10 +1163,7 @@ let tests =
                         DEFAULT_ROUTE_PARAMS
                         []
 
-                Expect.sequenceEqual
-                    (hops2Ids(route2))
-                    [ 1UL; 2UL; 3UL; 4UL ]
-                    ""
+                Expect.sequenceEqual (hops2Ids route2) [ 1UL; 2UL; 3UL; 4UL ] ""
 
             testCase
                 "route to a destination that is not in the graph (with assisted routes)"
@@ -1184,7 +1174,7 @@ let tests =
                             1UL,
                             a,
                             b,
-                            LNMoney.MilliSatoshis(10L),
+                            LNMoney.MilliSatoshis 10L,
                             10u,
                             None,
                             None,
@@ -1194,7 +1184,7 @@ let tests =
                             2UL,
                             b,
                             c,
-                            LNMoney.MilliSatoshis(10L),
+                            LNMoney.MilliSatoshis 10L,
                             10u,
                             None,
                             None,
@@ -1204,7 +1194,7 @@ let tests =
                             3UL,
                             c,
                             d,
-                            LNMoney.MilliSatoshis(10L),
+                            LNMoney.MilliSatoshis 10L,
                             10u,
                             None,
                             None,
@@ -1229,12 +1219,12 @@ let tests =
                 Expect.isEmpty route "there should be no e node in the graph"
 
                 // now we add the missing edge to reach the destination
-                let (extraDesc, extraUpdate) =
+                let extraDesc, extraUpdate =
                     makeUpdate(
                         4UL,
                         d,
                         e,
-                        LNMoney.MilliSatoshis(5L),
+                        LNMoney.MilliSatoshis 5L,
                         5u,
                         None,
                         None,
@@ -1264,10 +1254,7 @@ let tests =
                         DEFAULT_ROUTE_PARAMS
                         extraGraphEdges
 
-                Expect.sequenceEqual
-                    (hops2Ids(route1))
-                    [ 1UL; 2UL; 3UL; 4UL ]
-                    ""
+                Expect.sequenceEqual (hops2Ids route1) [ 1UL; 2UL; 3UL; 4UL ] ""
 
             testCase "limit routes to 20 hops"
             <| fun () ->
@@ -1282,10 +1269,10 @@ let tests =
                         (nodes |> Seq.skip 1) // (0, 1) :: (1, 2) :: ...
                     |> Seq.mapi(fun i (na, nb) ->
                         makeUpdate(
-                            (uint64 i),
+                            uint64 i,
                             na,
                             nb,
-                            LNMoney.MilliSatoshis(5),
+                            LNMoney.MilliSatoshis 5,
                             0u,
                             None,
                             None,
@@ -1309,8 +1296,8 @@ let tests =
                         []
 
                 Expect.sequenceEqual
-                    (hops2Ids(r18))
-                    [ for i in 0..17 -> (uint64 i) ]
+                    (hops2Ids r18)
+                    [ for i in 0..17 -> uint64 i ]
                     ""
 
                 let r19 =
@@ -1323,8 +1310,8 @@ let tests =
                         []
 
                 Expect.sequenceEqual
-                    (hops2Ids(r19))
-                    [ for i in 0..18 -> (uint64 i) ]
+                    (hops2Ids r19)
+                    [ for i in 0..18 -> uint64 i ]
                     ""
 
                 let r20 =
@@ -1337,8 +1324,8 @@ let tests =
                         []
 
                 Expect.sequenceEqual
-                    (hops2Ids(r20))
-                    [ for i in 0..19 -> (uint64 i) ]
+                    (hops2Ids r20)
+                    [ for i in 0..19 -> uint64 i ]
                     ""
 
                 let r21 =
@@ -1365,7 +1352,7 @@ let tests =
                         (nodes |> List.skip 1) // (0, 1) :: (1, 2) :: ...
                     |> List.mapi(fun i (na, nb) ->
                         makeUpdate(
-                            (uint64 i),
+                            uint64 i,
                             na,
                             nb,
                             LNMoney.One,
@@ -1382,7 +1369,7 @@ let tests =
                         99UL,
                         nodes.[2],
                         nodes.[48],
-                        LNMoney.MilliSatoshis(1000L),
+                        LNMoney.MilliSatoshis 1000L,
                         0u,
                         None,
                         None,
@@ -1405,7 +1392,7 @@ let tests =
                         []
 
                 Expect.sequenceEqual
-                    (hops2Ids(route))
+                    (hops2Ids route)
                     [ 0UL; 1UL; 99UL; 48UL ]
                     ""
 
@@ -1417,7 +1404,7 @@ let tests =
                             1UL,
                             a,
                             b,
-                            LNMoney.MilliSatoshis(10),
+                            LNMoney.MilliSatoshis 10,
                             10u,
                             None,
                             None,
@@ -1427,7 +1414,7 @@ let tests =
                             2UL,
                             b,
                             c,
-                            LNMoney.MilliSatoshis(10),
+                            LNMoney.MilliSatoshis 10,
                             10u,
                             None,
                             None,
@@ -1437,7 +1424,7 @@ let tests =
                             3UL,
                             c,
                             a,
-                            LNMoney.MilliSatoshis(10),
+                            LNMoney.MilliSatoshis 10,
                             10u,
                             None,
                             None,
@@ -1447,7 +1434,7 @@ let tests =
                             4UL,
                             c,
                             d,
-                            LNMoney.MilliSatoshis(10),
+                            LNMoney.MilliSatoshis 10,
                             10u,
                             None,
                             None,
@@ -1457,7 +1444,7 @@ let tests =
                             5UL,
                             d,
                             e,
-                            LNMoney.MilliSatoshis(10),
+                            LNMoney.MilliSatoshis 10,
                             10u,
                             None,
                             None,
@@ -1479,10 +1466,7 @@ let tests =
                         DEFAULT_ROUTE_PARAMS
                         []
 
-                Expect.sequenceEqual
-                    (hops2Ids(route1))
-                    [ 1UL; 2UL; 4UL; 5UL ]
-                    ""
+                Expect.sequenceEqual (hops2Ids route1) [ 1UL; 2UL; 4UL; 5UL ] ""
 
             testCase
                 "ensure the route calculation terminates correctly when selecting 0-fees edges"
@@ -1493,7 +1477,7 @@ let tests =
                             1UL,
                             a,
                             b,
-                            LNMoney.MilliSatoshis(10),
+                            LNMoney.MilliSatoshis 10,
                             10u,
                             None,
                             None,
@@ -1503,7 +1487,7 @@ let tests =
                             2UL,
                             b,
                             c,
-                            LNMoney.MilliSatoshis(10),
+                            LNMoney.MilliSatoshis 10,
                             10u,
                             None,
                             None,
@@ -1513,7 +1497,7 @@ let tests =
                             4UL,
                             c,
                             d,
-                            LNMoney.MilliSatoshis(10),
+                            LNMoney.MilliSatoshis 10,
                             10u,
                             None,
                             None,
@@ -1539,7 +1523,7 @@ let tests =
                         DEFAULT_ROUTE_PARAMS
                         []
 
-                Expect.sequenceEqual (hops2Ids(route1)) [ 1UL; 3UL; 5UL ] ""
+                Expect.sequenceEqual (hops2Ids route1) [ 1UL; 3UL; 5UL ] ""
 
             testCase
                 "ignore cheaper route when it has more than the requested CLTV limit"
@@ -1552,9 +1536,9 @@ let tests =
                             b,
                             LNMoney.One,
                             0u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
-                            Some(BlockHeightOffset16(50us))
+                            Some(BlockHeightOffset16 50us)
                         )
                         makeUpdate(
                             2UL,
@@ -1562,9 +1546,9 @@ let tests =
                             c,
                             LNMoney.One,
                             0u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
-                            Some(BlockHeightOffset16(50us))
+                            Some(BlockHeightOffset16 50us)
                         )
                         makeUpdate(
                             3UL,
@@ -1572,9 +1556,9 @@ let tests =
                             d,
                             LNMoney.One,
                             0u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
-                            Some(BlockHeightOffset16(50us))
+                            Some(BlockHeightOffset16 50us)
                         )
                         makeUpdate(
                             4UL,
@@ -1582,29 +1566,29 @@ let tests =
                             e,
                             LNMoney.One,
                             0u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
-                            Some(BlockHeightOffset16(9us))
+                            Some(BlockHeightOffset16 9us)
                         )
                         makeUpdate(
                             5UL,
                             e,
                             f,
-                            LNMoney.MilliSatoshis(5),
+                            LNMoney.MilliSatoshis 5,
                             0u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
-                            Some(BlockHeightOffset16(9us))
+                            Some(BlockHeightOffset16 9us)
                         )
                         makeUpdate(
                             6UL,
                             f,
                             d,
-                            LNMoney.MilliSatoshis(5),
+                            LNMoney.MilliSatoshis 5,
                             0u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
-                            Some(BlockHeightOffset16(9us))
+                            Some(BlockHeightOffset16 9us)
                         )
                     ]
                     |> List.unzip
@@ -1620,11 +1604,11 @@ let tests =
                         DEFAULT_AMOUNT_MSAT
                         400000u
                         { DEFAULT_ROUTE_PARAMS with
-                            RouteMaxCLTV = (BlockHeightOffset16(28us))
+                            RouteMaxCLTV = (BlockHeightOffset16 28us)
                         }
                         []
 
-                Expect.sequenceEqual (hops2Ids(route)) [ 4UL; 5UL; 6UL ] ""
+                Expect.sequenceEqual (hops2Ids route) [ 4UL; 5UL; 6UL ] ""
 
             testCase
                 "ignore cheaper route when it grows longer than the requested size"
@@ -1637,9 +1621,9 @@ let tests =
                             b,
                             LNMoney.One,
                             0u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
-                            (Some(BlockHeightOffset16(9us)))
+                            Some(BlockHeightOffset16 9us)
                         )
                         makeUpdate(
                             2UL,
@@ -1647,9 +1631,9 @@ let tests =
                             c,
                             LNMoney.One,
                             0u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
-                            (Some(BlockHeightOffset16(9us)))
+                            Some(BlockHeightOffset16 9us)
                         )
                         makeUpdate(
                             3UL,
@@ -1657,9 +1641,9 @@ let tests =
                             d,
                             LNMoney.One,
                             0u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
-                            (Some(BlockHeightOffset16(9us)))
+                            Some(BlockHeightOffset16 9us)
                         )
                         makeUpdate(
                             4UL,
@@ -1667,9 +1651,9 @@ let tests =
                             e,
                             LNMoney.One,
                             0u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
-                            (Some(BlockHeightOffset16(9us)))
+                            Some(BlockHeightOffset16 9us)
                         )
                         makeUpdate(
                             5UL,
@@ -1677,9 +1661,9 @@ let tests =
                             f,
                             LNMoney.One,
                             0u,
-                            Some(LNMoney.MilliSatoshis(5)),
+                            Some(LNMoney.MilliSatoshis 5),
                             None,
-                            (Some(BlockHeightOffset16(9us)))
+                            Some(BlockHeightOffset16 9us)
                         )
                         makeUpdate(
                             6UL,
@@ -1687,9 +1671,9 @@ let tests =
                             f,
                             LNMoney.One,
                             0u,
-                            Some(LNMoney.MilliSatoshis(5)),
+                            Some(LNMoney.MilliSatoshis 5),
                             None,
-                            (Some(BlockHeightOffset16(9us)))
+                            Some(BlockHeightOffset16 9us)
                         )
                     ]
                     |> List.unzip
@@ -1709,7 +1693,7 @@ let tests =
                         }
                         []
 
-                Expect.sequenceEqual (hops2Ids(route)) [ 1UL; 6UL ] ""
+                Expect.sequenceEqual (hops2Ids route) [ 1UL; 6UL ] ""
 
             testCase "select a random route below the requested fee"
             <| fun _ ->
@@ -1719,7 +1703,7 @@ let tests =
                             1UL,
                             a,
                             b,
-                            LNMoney.MilliSatoshis(1),
+                            LNMoney.MilliSatoshis 1,
                             0u,
                             None,
                             None,
@@ -1729,7 +1713,7 @@ let tests =
                             4UL,
                             a,
                             e,
-                            LNMoney.MilliSatoshis(1),
+                            LNMoney.MilliSatoshis 1,
                             0u,
                             None,
                             None,
@@ -1739,7 +1723,7 @@ let tests =
                             2UL,
                             b,
                             c,
-                            LNMoney.MilliSatoshis(2),
+                            LNMoney.MilliSatoshis 2,
                             0u,
                             None,
                             None,
@@ -1749,7 +1733,7 @@ let tests =
                             3UL,
                             c,
                             d,
-                            LNMoney.MilliSatoshis(3),
+                            LNMoney.MilliSatoshis 3,
                             0u,
                             None,
                             None,
@@ -1759,7 +1743,7 @@ let tests =
                             5UL,
                             e,
                             f,
-                            LNMoney.MilliSatoshis(3),
+                            LNMoney.MilliSatoshis 3,
                             0u,
                             None,
                             None,
@@ -1769,7 +1753,7 @@ let tests =
                             6UL,
                             f,
                             d,
-                            LNMoney.MilliSatoshis(3),
+                            LNMoney.MilliSatoshis 3,
                             0u,
                             None,
                             None,
@@ -1779,7 +1763,7 @@ let tests =
                             7UL,
                             e,
                             c,
-                            LNMoney.MilliSatoshis(9),
+                            LNMoney.MilliSatoshis 9,
                             0u,
                             None,
                             None,
@@ -1794,7 +1778,7 @@ let tests =
 
                 let strictFeeParams =
                     { DEFAULT_ROUTE_PARAMS with
-                        MaxFeeBase = LNMoney.MilliSatoshis(7)
+                        MaxFeeBase = LNMoney.MilliSatoshis 7
                         MaxFeePCT = 0.
                     }
 
@@ -1819,7 +1803,7 @@ let tests =
 
             testCase "Use weight ratios to when computing the edge weight"
             <| fun _ ->
-                let largeCap = LNMoney.MilliSatoshis(80000000000L)
+                let largeCap = LNMoney.MilliSatoshis 80000000000L
 
                 let descs, updates =
                     [
@@ -1827,71 +1811,71 @@ let tests =
                             1UL,
                             a,
                             b,
-                            LNMoney.MilliSatoshis(0),
+                            LNMoney.MilliSatoshis 0,
                             0u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
-                            Some(BlockHeightOffset16(13us))
+                            Some(BlockHeightOffset16 13us)
                         )
                         makeUpdate(
                             4UL,
                             a,
                             e,
-                            LNMoney.MilliSatoshis(0),
+                            LNMoney.MilliSatoshis 0,
                             0u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
-                            Some(BlockHeightOffset16(12us))
+                            Some(BlockHeightOffset16 12us)
                         )
                         makeUpdate(
                             2UL,
                             b,
                             c,
-                            LNMoney.MilliSatoshis(1),
+                            LNMoney.MilliSatoshis 1,
                             0u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
-                            Some(BlockHeightOffset16(500us))
+                            Some(BlockHeightOffset16 500us)
                         )
                         makeUpdate(
                             3UL,
                             c,
                             d,
-                            LNMoney.MilliSatoshis(1),
+                            LNMoney.MilliSatoshis 1,
                             0u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
-                            Some(BlockHeightOffset16(500us))
+                            Some(BlockHeightOffset16 500us)
                         )
                         makeUpdate(
                             5UL,
                             e,
                             f,
-                            LNMoney.MilliSatoshis(2),
+                            LNMoney.MilliSatoshis 2,
                             0u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
-                            Some(BlockHeightOffset16(9us))
+                            Some(BlockHeightOffset16 9us)
                         )
                         makeUpdate(
                             6UL,
                             f,
                             d,
-                            LNMoney.MilliSatoshis(2),
+                            LNMoney.MilliSatoshis 2,
                             0u,
-                            Some(LNMoney.Zero),
+                            Some LNMoney.Zero,
                             None,
-                            Some(BlockHeightOffset16(9us))
+                            Some(BlockHeightOffset16 9us)
                         )
                         makeUpdate(
                             7UL,
                             e,
                             c,
-                            LNMoney.MilliSatoshis(2),
+                            LNMoney.MilliSatoshis 2,
                             0u,
-                            Some(LNMoney.Zero),
-                            Some(largeCap),
-                            Some(BlockHeightOffset16(12us))
+                            Some LNMoney.Zero,
+                            Some largeCap,
+                            Some(BlockHeightOffset16 12us)
                         )
                     ]
                     |> List.unzip
@@ -1956,11 +1940,11 @@ let tests =
                         schid,
                         one,
                         two,
-                        LNMoney.MilliSatoshis(1),
+                        LNMoney.MilliSatoshis 1,
                         0u,
-                        (Some LNMoney.Zero),
+                        Some LNMoney.Zero,
                         None,
-                        (Some(BlockHeightOffset16(144us)))
+                        Some(BlockHeightOffset16 144us)
                     )
 
                 let descs, updates =
@@ -2018,9 +2002,9 @@ let tests =
                         two,
                         LNMoney.One,
                         0u,
-                        (Some LNMoney.Zero),
+                        Some LNMoney.Zero,
                         None,
-                        (Some(BlockHeightOffset16 cltv))
+                        Some(BlockHeightOffset16 cltv)
                     )
 
                 let descs, updates =
