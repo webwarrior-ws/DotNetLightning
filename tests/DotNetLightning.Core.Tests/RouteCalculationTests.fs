@@ -1945,7 +1945,7 @@ let tests =
                     (routeCapOptimized |> Seq.map(fun hop -> hop.NodeId))
                     [ a; e; c ]
                     ""
-        ] (*
+
             testCase
                 "Prefer going through an older channel if fees and CLTV are the same"
             <| fun _ ->
@@ -1963,7 +1963,7 @@ let tests =
                         (Some(BlockHeightOffset16(144us)))
                     )
 
-                let updates =
+                let descs, updates =
                     [
                         mu((sprintf "%ix0x1" currentBlockHeight), a, b)
                         mu((sprintf "%ix0x4" currentBlockHeight), a, e)
@@ -1980,8 +1980,11 @@ let tests =
                         mu((sprintf "%ix0x5" currentBlockHeight), e, f)
                         mu((sprintf "%ix0x6" currentBlockHeight), f, d)
                     ]
+                    |> List.unzip
 
-                let graph = DirectedLNGraph.Create().AddEdges(updates)
+                let updatesMap = makeUpdatesMap updates
+
+                let graph = RoutingGraphData().Update descs updatesMap 0u
 
                 let routeScoreOptimized =
                     let wr =
@@ -1989,26 +1992,20 @@ let tests =
 
                     let rp =
                         { DEFAULT_ROUTE_PARAMS with
-                            Ratios = Some(wr)
+                            Ratios = wr
                         }
 
-                    Routing.findRoute
-                        graph
+                    graph.GetRoute
                         a
                         d
                         (DEFAULT_AMOUNT_MSAT / 2)
-                        1
-                        (Set.empty)
-                        (Set.empty)
-                        (Set.empty)
+                        currentBlockHeight
                         rp
-                        (BlockHeight(currentBlockHeight))
-                    |> Result.deref
-                    |> hops2Nodes
+                        []
 
                 Expect.sequenceEqual
-                    routeScoreOptimized
-                    [ (a, b); (b, c); (c, d) ]
+                    (routeScoreOptimized |> Seq.map(fun hop -> hop.NodeId))
+                    [ a; b; c ]
                     ""
 
             testCase
@@ -2026,7 +2023,7 @@ let tests =
                         (Some(BlockHeightOffset16 cltv))
                     )
 
-                let updates =
+                let descs, updates =
                     [
                         mu(1UL, a, b, 12us)
                         mu(4UL, a, e, 12us)
@@ -2035,8 +2032,11 @@ let tests =
                         mu(5UL, e, f, 12us)
                         mu(6UL, f, d, 12us)
                     ]
+                    |> List.unzip
 
-                let graph = DirectedLNGraph.Create().AddEdges(updates)
+                let updatesMap = makeUpdatesMap updates
+
+                let graph = RoutingGraphData().Update descs updatesMap 0u
 
                 let routeScoreOptimized =
                     let wr =
@@ -2044,26 +2044,14 @@ let tests =
 
                     let rp =
                         { DEFAULT_ROUTE_PARAMS with
-                            Ratios = Some(wr)
+                            Ratios = wr
                         }
 
-                    Routing.findRoute
-                        graph
-                        a
-                        d
-                        (DEFAULT_AMOUNT_MSAT / 2)
-                        1
-                        (Set.empty)
-                        (Set.empty)
-                        (Set.empty)
-                        rp
-                        (BlockHeight(400000u))
-                    |> Result.deref
-                    |> hops2Nodes
+                    graph.GetRoute a d (DEFAULT_AMOUNT_MSAT / 2) 400000u rp []
 
                 Expect.sequenceEqual
-                    routeScoreOptimized
-                    [ (a, b); (b, c); (c, d) ]
+                    (routeScoreOptimized |> Seq.map(fun hop -> hop.NodeId))
+                    [ a; b; c ]
                     ""
 
                 ()
@@ -2083,7 +2071,7 @@ let tests =
                     )
                 // A --> B --> C --> D is cheaper but has a total CLTV > 2016!
                 // A --> E --> F --> D is more expensive but has a total CLTV < 2016
-                let updates =
+                let descs, updates =
                     [
                         mu(1UL, a, b, 144us)
                         mu(4UL, a, e, 144us)
@@ -2092,8 +2080,11 @@ let tests =
                         mu(5UL, e, f, 144us)
                         mu(6UL, f, d, 144us)
                     ]
+                    |> List.unzip
 
-                let graph = DirectedLNGraph.Create().AddEdges(updates)
+                let updatesMap = makeUpdatesMap updates
+
+                let graph = RoutingGraphData().Update descs updatesMap 0u
 
                 let routeScoreOptimized =
                     let wr =
@@ -2101,25 +2092,13 @@ let tests =
 
                     let rp =
                         { DEFAULT_ROUTE_PARAMS with
-                            Ratios = Some(wr)
+                            Ratios = wr
                         }
 
-                    Routing.findRoute
-                        graph
-                        a
-                        d
-                        (DEFAULT_AMOUNT_MSAT / 2)
-                        1
-                        (Set.empty)
-                        (Set.empty)
-                        (Set.empty)
-                        rp
-                        (BlockHeight(400000u))
-                    |> Result.deref
-                    |> hops2Nodes
+                    graph.GetRoute a d (DEFAULT_AMOUNT_MSAT / 2) 400000u rp []
 
                 Expect.sequenceEqual
-                    routeScoreOptimized
-                    [ (a, e); (e, f); (f, d) ]
+                    (routeScoreOptimized |> Seq.map(fun hop -> hop.NodeId))
+                    [ a; e; f ]
                     ""
-        ] *)
+        ]
