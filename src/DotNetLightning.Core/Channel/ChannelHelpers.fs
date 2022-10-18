@@ -104,17 +104,22 @@ module internal ChannelSyncing =
             SyncResult.RemoteLate
         else
             //FIXME: scary Option.Value
-            if channelPrivKeys.CommitmentSeed.DerivePerCommitmentSecret (remoteChannelReestablish.NextRevocationNumber.PreviousCommitment()) = remoteChannelReestablish.YourLastPerCommitmentSecret.Value then
-                SyncResult.LocalLateProven (
-                    savedChannelState.LocalCommit.Index,
-                    remoteChannelReestablish.NextRevocationNumber
-                )
-            else
-                SyncResult.RemoteLying(
-                    savedChannelState.LocalCommit.Index,
-                    remoteChannelReestablish.NextRevocationNumber,
-                    remoteChannelReestablish.YourLastPerCommitmentSecret.Value
-                  )
+            match remoteChannelReestablish.DataLossProtect with
+            | Some dataLossProtect ->
+                if channelPrivKeys.CommitmentSeed.DerivePerCommitmentSecret (remoteChannelReestablish.NextRevocationNumber.PreviousCommitment()) = dataLossProtect.YourLastPerCommitmentSecret.Value then
+                    SyncResult.LocalLateProven (
+                        savedChannelState.LocalCommit.Index,
+                        remoteChannelReestablish.NextRevocationNumber
+                    )
+                else
+                    SyncResult.RemoteLying(
+                        savedChannelState.LocalCommit.Index,
+                        remoteChannelReestablish.NextRevocationNumber,
+                        dataLossProtect.YourLastPerCommitmentSecret.Value
+                      )
+            | None -> failwith "..." 
+
+
 module ClosingHelpers =
     let TxVersionNumberOfCommitmentTxs = 2u
 
@@ -1562,14 +1567,14 @@ module ClosingHelpers =
                 savedChannelState.RemoteCommit
         else
             match remoteNextCommitInfoOpt with
-            | Some(Waiting remoteNextCommit) when
-                closingTxId = remoteNextCommit.TxId
+            | Some(Waiting waitingForRevokation) when
+                closingTxId = waitingForRevokation.NextRemoteCommit.TxId
                 ->
                 RemoteClose.ClaimCommitTxOutputs
                     closingTx
                     savedChannelState.StaticChannelConfig
                     channelPrivKeys
-                    remoteNextCommit
+                    waitingForRevokation.NextRemoteCommit
             | _ ->
                 RevokedClose.ClaimCommitTxOutputs
                     closingTx
@@ -1612,12 +1617,12 @@ module ClosingHelpers =
                 hash2preimage
         else
             match remoteNextCommitInfoOpt with
-            | Some(Waiting remoteNextCommit) when
-                closingTxId = remoteNextCommit.TxId
+            | Some(Waiting waitingForRevokation) when
+                closingTxId = waitingForRevokation.NextRemoteCommit.TxId
                 ->
                 RemoteClose.UnresolvedHtlcList
                     closingTx
-                    remoteNextCommit
+                    waitingForRevokation.NextRemoteCommit
                     savedChannelState.StaticChannelConfig
                     hash2preimage
             | _ -> RevokedClose.UnresolvedHtlcList closingTx savedChannelState
@@ -1661,13 +1666,13 @@ module ClosingHelpers =
                 localChannelPrivKeys
         else
             match remoteNextCommitInfoOpt with
-            | Some(Waiting remoteNextCommit) when
-                closingTxId = remoteNextCommit.TxId
+            | Some(Waiting waitingForRevokation) when
+                closingTxId = waitingForRevokation.NextRemoteCommit.TxId
                 ->
                 RemoteClose.ClaimHtlcOutput
                     htlcInfo
                     closingTx
-                    remoteNextCommit
+                    waitingForRevokation.NextRemoteCommit
                     savedChannelState.StaticChannelConfig
                     localChannelPrivKeys
             | _ ->
@@ -1710,8 +1715,8 @@ module ClosingHelpers =
             None
         else
             match remoteNextCommitInfoOpt with
-            | Some(Waiting remoteNextCommit) when
-                closingTxId = remoteNextCommit.TxId
+            | Some(Waiting waitingForRevokation) when
+                closingTxId = waitingForRevokation.NextRemoteCommit.TxId
                 ->
                 None
             | _ ->

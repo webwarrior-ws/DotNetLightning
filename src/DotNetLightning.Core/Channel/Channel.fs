@@ -258,6 +258,7 @@ and ChannelWaitingForFundingCreated =
                             .GetTxId()
                     RemotePerCommitmentPoint =
                         this.RemoteFirstPerCommitmentPoint
+                    SentAfterLocalCommitIndex = localCommit.Index
                 }
 
             let channel =
@@ -421,6 +422,7 @@ and ChannelWaitingForFundingTx =
                                     .GetTxId()
                             RemotePerCommitmentPoint =
                                 this.RemoteFirstPerCommitmentPoint
+                            SentAfterLocalCommitIndex = CommitmentNumber.FirstCommitment
                         }
                 }
 
@@ -1631,8 +1633,8 @@ and Channel =
 
         let remoteCommit =
             match remoteNextCommitInfo with
-            | Some(RemoteNextCommitInfo.Waiting nextRemoteCommit) ->
-                nextRemoteCommit
+            | Some(RemoteNextCommitInfo.Waiting waitingForRevokation) ->
+                waitingForRevokation.NextRemoteCommit
             | _ -> savedChannelState.RemoteCommit
 
         let reducedRes =
@@ -1773,10 +1775,14 @@ and Channel =
                     { this with
                         Commitments = nextCommitments
                         SavedChannelState = nextSavedChannelState
-                        RemoteNextCommitInfo =
+                        RemoteNextCommitInfo = 
                             Some
-                            <| RemoteNextCommitInfo.Waiting nextRemoteCommitInfo
-                            SentAfterLocalCommitIndex = savedChannelState.LocalCommit.Index
+                            <| RemoteNextCommitInfo.Waiting 
+                                { 
+                                    NextRemoteCommit = nextRemoteCommitInfo
+                                    SentSig = msg
+                                    SentAfterLocalCommitIndex = savedChannelState.LocalCommit.Index
+                                }
                     }
 
                 return msg, channel
