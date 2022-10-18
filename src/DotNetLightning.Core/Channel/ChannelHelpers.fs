@@ -45,7 +45,7 @@ module internal ChannelSyncing =
         | RemoteLying of
             ourLocalCommitmentNumber: CommitmentNumber *
             theirRemoteCommitmentNumber: CommitmentNumber *
-            invalidPerCommitmentSecret: PerCommitmentSecret
+            invalidPerCommitmentSecret: option<PerCommitmentPoint>
         | Success of retransmitRevocation: list<ILightningMsg>
 
     let checkSync
@@ -153,15 +153,18 @@ module internal ChannelSyncing =
                                                        () then
             SyncResult.RemoteLate
         else
-            //FIXME: scary Option.Value
             match remoteChannelReestablish.DataLossProtect with
             | Some dataLossProtect ->
                 if
-                    channelPrivKeys.CommitmentSeed.DerivePerCommitmentSecret
+                    Some
                         (
-                            remoteChannelReestablish.NextRevocationNumber.PreviousCommitment
-                                ()
-                        ) = dataLossProtect.YourLastPerCommitmentSecret.Value
+                            channelPrivKeys
+                                .CommitmentSeed
+                                .DerivePerCommitmentSecret(
+                                    remoteChannelReestablish.NextRevocationNumber.PreviousCommitment
+                                        ()
+                                )
+                        ) = dataLossProtect.YourLastPerCommitmentSecret
                 then
                     SyncResult.LocalLateProven(
                         savedChannelState.LocalCommit.Index,
@@ -172,9 +175,10 @@ module internal ChannelSyncing =
                     SyncResult.RemoteLying(
                         savedChannelState.LocalCommit.Index,
                         remoteChannelReestablish.NextRevocationNumber,
-                        dataLossProtect.YourLastPerCommitmentSecret.Value
+                        dataLossProtect.YourLastPerCommitmentSecret
+                        |> Option.map(fun secret -> secret.PerCommitmentPoint())
                     )
-            | None -> failwith "..."
+            | None -> failwith "data_loss_protect is absent"
 
 
 module ClosingHelpers =
