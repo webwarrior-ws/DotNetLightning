@@ -122,6 +122,7 @@ let tests =
                         Spec = remoteCommitmentSpec
                         TxId = TxId.Zero
                         RemotePerCommitmentPoint = dummyPerCommitmentPoint
+                        SentAfterLocalCommitIndex = dummyCommitmentNumber
                     }
 
                 let localCommit: LocalCommit =
