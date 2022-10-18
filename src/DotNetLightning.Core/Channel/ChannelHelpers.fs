@@ -31,12 +31,14 @@ module internal ChannelConstantHelpers =
         let q = channelValue / 100L
         Money.Min(channelValue, Money.Max(q, Money.Satoshis(1L)))
 
+
 module internal ChannelSyncing =
     type SyncResult =
         | RemoteLate
         | LocalLateProven of
             ourLocalCommitmentNumber: CommitmentNumber *
-            theirRemoteCommitmentNumber: CommitmentNumber
+            theirRemoteCommitmentNumber: CommitmentNumber *
+            currentPerCommitmentPoint: PerCommitmentPoint
         | LocalLateUnproven of
             ourRemoteCommitmentNumber: CommitmentNumber *
             theirLocalCommitmentNumber: CommitmentNumber
@@ -163,7 +165,8 @@ module internal ChannelSyncing =
                 then
                     SyncResult.LocalLateProven(
                         savedChannelState.LocalCommit.Index,
-                        remoteChannelReestablish.NextRevocationNumber
+                        remoteChannelReestablish.NextRevocationNumber,
+                        dataLossProtect.MyCurrentPerCommitmentPoint
                     )
                 else
                     SyncResult.RemoteLying(
