@@ -422,7 +422,8 @@ and ChannelWaitingForFundingTx =
                                     .GetTxId()
                             RemotePerCommitmentPoint =
                                 this.RemoteFirstPerCommitmentPoint
-                            SentAfterLocalCommitIndex = CommitmentNumber.FirstCommitment
+                            SentAfterLocalCommitIndex =
+                                CommitmentNumber.FirstCommitment
                         }
                 }
 
@@ -886,7 +887,8 @@ and Channel =
                 // we need to base the next current commitment on the last sig we sent, even if we didn't yet receive their revocation
                 let remoteCommit1 =
                     match remoteNextCommitInfo with
-                    | Waiting waitingForRevocation -> waitingForRevocation.NextRemoteCommit
+                    | Waiting waitingForRevocation ->
+                        waitingForRevocation.NextRemoteCommit
                     | Revoked _info -> this.SavedChannelState.RemoteCommit
 
                 let! reduced =
@@ -1775,13 +1777,14 @@ and Channel =
                     { this with
                         Commitments = nextCommitments
                         SavedChannelState = nextSavedChannelState
-                        RemoteNextCommitInfo = 
+                        RemoteNextCommitInfo =
                             Some
-                            <| RemoteNextCommitInfo.Waiting 
-                                { 
+                            <| RemoteNextCommitInfo.Waiting
+                                {
                                     NextRemoteCommit = nextRemoteCommitInfo
                                     SentSig = msg
-                                    SentAfterLocalCommitIndex = savedChannelState.LocalCommit.Index
+                                    SentAfterLocalCommitIndex =
+                                        savedChannelState.LocalCommit.Index
                                 }
                     }
 

@@ -265,7 +265,8 @@ let testList =
                         Spec = commitmentSpec
                         TxId = TxId <| commitmentTx.GetHash()
                         RemotePerCommitmentPoint = perCommitmentPoint
-                        SentAfterLocalCommitIndex = CommitmentNumber.FirstCommitment
+                        SentAfterLocalCommitIndex =
+                            CommitmentNumber.FirstCommitment
                     }
 
                 let remoteRemoteParams =
@@ -720,7 +721,8 @@ let testList =
                         Spec = localCommitmentSpec
                         TxId = TxId <| localCommitmentTx.GetHash()
                         RemotePerCommitmentPoint = perCommitmentPoint
-                        SentAfterLocalCommitIndex = CommitmentNumber.FirstCommitment
+                        SentAfterLocalCommitIndex =
+                            CommitmentNumber.FirstCommitment
                     }
 
                 let remoteRemoteParams =
@@ -1106,7 +1108,8 @@ let testList =
                         Spec = localCommitmentSpec
                         TxId = TxId <| localCommitmentTx.GetHash()
                         RemotePerCommitmentPoint = perCommitmentPoint
-                        SentAfterLocalCommitIndex = CommitmentNumber.FirstCommitment
+                        SentAfterLocalCommitIndex =
+                            CommitmentNumber.FirstCommitment
                     }
 
                 let remoteRemoteParams =

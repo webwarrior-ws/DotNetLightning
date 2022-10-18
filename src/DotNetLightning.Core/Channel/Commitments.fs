@@ -59,11 +59,12 @@ type RemoteCommit =
         SentAfterLocalCommitIndex: CommitmentNumber
     }
 
-type WaitingForRevocation = {
-    NextRemoteCommit: RemoteCommit
-    SentSig: CommitmentSignedMsg
-    SentAfterLocalCommitIndex: CommitmentNumber
-}
+type WaitingForRevocation =
+    {
+        NextRemoteCommit: RemoteCommit
+        SentSig: CommitmentSignedMsg
+        SentAfterLocalCommitIndex: CommitmentNumber
+    }
 
 type RemoteNextCommitInfo =
     | Waiting of WaitingForRevocation
@@ -71,7 +72,8 @@ type RemoteNextCommitInfo =
 
     member this.PerCommitmentPoint() : PerCommitmentPoint =
         match this with
-        | Waiting waitingForRevocation-> waitingForRevocation.NextRemoteCommit.RemotePerCommitmentPoint
+        | Waiting waitingForRevocation ->
+            waitingForRevocation.NextRemoteCommit.RemotePerCommitmentPoint
         | Revoked perCommitmentPoint -> perCommitmentPoint
 
 type Amounts =
