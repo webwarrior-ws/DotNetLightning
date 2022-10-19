@@ -75,6 +75,11 @@ type ChannelError =
     // ---- invalid command ----
     | InvalidOperationAddHTLC of InvalidOperationAddHTLCError
     // -------------------------
+    | OutOfSync of msg: string
+    | OutOfSyncLocalLateProven of
+        msg: string *
+        currentPerCommitmentPoint: PerCommitmentPoint
+    | OutOfSyncRemoteLying of msg: string
 
     member this.RecommendedAction =
         match this with
@@ -110,6 +115,9 @@ type ChannelError =
         | InvalidOperationAddHTLC _ -> Ignore
         | RemoteProposedHigherFeeThanBaseFee(_, _) -> Close
         | RemoteProposedFeeOutOfNegotiatedRange(_, _, _) -> Close
+        | OutOfSync _ -> Close
+        | OutOfSyncLocalLateProven _ -> Close
+        | OutOfSyncRemoteLying _ -> Close
 
     member this.Message =
         match this with
@@ -229,6 +237,9 @@ type ChannelError =
             sprintf
                 "Invalid operation (add htlc): %s"
                 invalidOperationAddHTLCError.Message
+        | OutOfSync msg -> "Channel is out of sync: " + msg
+        | OutOfSyncLocalLateProven(msg, _) -> "Channel is out of sync: " + msg
+        | OutOfSyncRemoteLying msg -> "Channel is out of sync: " + msg
 
 and ChannelConsumerAction =
     /// The error which should never happen.
