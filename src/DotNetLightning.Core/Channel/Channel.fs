@@ -1,5 +1,6 @@
 namespace DotNetLightning.Channel
 
+open ChannelSyncing
 open DotNetLightning.Utils
 open DotNetLightning.Utils.NBitcoinExtensions
 open DotNetLightning.Chain
@@ -2046,3 +2047,94 @@ and Channel =
 
                 return nextMsg, nextChannel
             }
+
+    member this.ApplyChannelReestablish
+        (theirReestablishMsg: ChannelReestablishMsg)
+        : ChannelSyncResult =
+        match
+            checkSync
+                this.ChannelPrivKeys
+                this.SavedChannelState
+                this.RemoteNextCommitInfo
+                theirReestablishMsg
+            with
+        | Success _ as success ->
+            {
+                SyncResult = success
+                Channel = this
+            }
+        | LocalLateUnproven _ as syncResult ->
+            {
+                SyncResult = syncResult
+                Channel = this
+            }
+        | LocalLateProven
+            (
+                _ourLocalCommitmentNumber,
+                _theirRemoteCommitmentNumber,
+                currentPerCommitmentPoint
+            ) as syncResult ->
+            let newSavedState =
+                { this.SavedChannelState with
+                    RemoteCurrentPerCommitmentPoint =
+                        Some currentPerCommitmentPoint
+                }
+
+            {
+                SyncResult = syncResult
+                Channel =
+                    { this with
+                        SavedChannelState = newSavedState
+                    }
+            }
+        | RemoteLate as syncResult ->
+            {
+                SyncResult = syncResult
+                Channel = this
+            }
+        | RemoteLying _ as syncResult ->
+            {
+                SyncResult = syncResult
+                Channel = this
+            }
+
+and ChannelSyncResult =
+    {
+        SyncResult: SyncResult
+        Channel: Channel
+    }
+
+    member this.ErrorMessage =
+        match this.SyncResult with
+        | Success _ -> "no error"
+        | LocalLateUnproven
+            (
+                ourLocalCommitmentNumber, theirRemoteCommitmentNumber
+            ) ->
+            sprintf
+                "local commitment number = %s, remote commitment number = %s"
+                (ourLocalCommitmentNumber.ToString())
+                (theirRemoteCommitmentNumber.ToString())
+        | LocalLateProven
+            (
+                ourLocalCommitmentNumber,
+                theirRemoteCommitmentNumber,
+                currentPerCommitmentPoint
+            ) ->
+            sprintf
+                "local commitment number = %s, remote commitment number = %s, current per commitment point = %s"
+                (ourLocalCommitmentNumber.ToString())
+                (theirRemoteCommitmentNumber.ToString())
+                (currentPerCommitmentPoint.ToString())
+        | RemoteLate -> "remote is late"
+        | RemoteLying
+            (
+                ourLocalCommitmentNumber,
+                theirRemoteCommitmentNumber,
+                invalidPerCommitmentSecret
+            ) ->
+            sprintf
+                "remote is lying (local commitment number = %s, remote commitment number = %s, remote invalid per commitment secret = %A)"
+                (ourLocalCommitmentNumber.ToString())
+                (theirRemoteCommitmentNumber.ToString())
+                invalidPerCommitmentSecret
