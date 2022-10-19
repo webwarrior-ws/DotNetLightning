@@ -745,8 +745,7 @@ and Channel =
                     this.SavedChannelState.StaticChannelConfig.ChannelId()
                 NextCommitmentNumber =
                     this.SavedChannelState.LocalCommit.Index.NextCommitment()
-                NextRevocationNumber =
-                    this.SavedChannelState.RemoteCommit.Index
+                NextRevocationNumber = this.SavedChannelState.RemoteCommit.Index
                 DataLossProtect =
                     OptionalField.Some
                     <| {
@@ -754,7 +753,8 @@ and Channel =
                                this.SavedChannelState.RemotePerCommitmentSecrets.MostRecentPerCommitmentSecret
                                    ()
                            MyCurrentPerCommitmentPoint =
-                               commitmentSeed.DerivePerCommitmentPoint this.SavedChannelState.LocalCommit.Index
+                               commitmentSeed.DerivePerCommitmentPoint
+                                   this.SavedChannelState.LocalCommit.Index
                        }
             }
 
