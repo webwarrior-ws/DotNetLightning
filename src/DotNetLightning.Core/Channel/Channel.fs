@@ -111,6 +111,7 @@ type ChannelWaitingForFundingSigned =
                     RemoteNextCommitInfo = None
                     NegotiatingState = NegotiatingState.New()
                     Commitments = commitments
+                    SavedCurrentPerCommitmentPoint = None
                 }
 
             return this.FundingTx, channel
@@ -294,6 +295,7 @@ and ChannelWaitingForFundingCreated =
                     RemoteNextCommitInfo = None
                     NegotiatingState = NegotiatingState.New()
                     Commitments = commitments
+                    SavedCurrentPerCommitmentPoint = None
                 }
 
             return msgToSend, channel
@@ -521,6 +523,9 @@ and Channel =
         RemoteNextCommitInfo: Option<RemoteNextCommitInfo>
         NegotiatingState: NegotiatingState
         Commitments: Commitments
+        /// Stores my_current_per_commitment_point from data loss protect in case
+        /// remote proved to be ahead when doing sync check during processing of channel_reestablish
+        SavedCurrentPerCommitmentPoint: Option<PerCommitmentPoint>
     }
 
     member internal this.RemoteNextCommitInfoIfFundingLocked
