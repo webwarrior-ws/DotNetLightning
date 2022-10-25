@@ -333,6 +333,7 @@ let testList =
                         RemoteChanges = RemoteChanges.Zero
                         HistoricalRemoteCommits = Map.empty
                         HistoricalLocalCommits = Map.empty
+                        SavedCurrentPerCommitmentPoint = None
                     }
 
                 let transactionBuilder =
@@ -780,6 +781,7 @@ let testList =
                         RemoteChanges = RemoteChanges.Zero
                         HistoricalRemoteCommits = Map.empty
                         HistoricalLocalCommits = Map.empty
+                        SavedCurrentPerCommitmentPoint = None
                     }
 
                 let validateClosingResult
@@ -1167,6 +1169,7 @@ let testList =
                         RemoteChanges = RemoteChanges.Zero
                         HistoricalRemoteCommits = Map.empty
                         HistoricalLocalCommits = Map.empty
+                        SavedCurrentPerCommitmentPoint = None
                     }
 
                 let remoteSpendingOldLocalCommitmentRes =

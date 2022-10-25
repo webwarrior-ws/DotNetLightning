@@ -104,6 +104,7 @@ type ChannelWaitingForFundingSigned =
                                 |> Map.add
                                     (this.RemoteCommit.TxId.Value.ToString())
                                     this.RemoteCommit
+                            SavedCurrentPerCommitmentPoint = None
                         }
                     ChannelOptions = this.ChannelOptions
                     ChannelPrivKeys = this.ChannelPrivKeys
@@ -111,7 +112,6 @@ type ChannelWaitingForFundingSigned =
                     RemoteNextCommitInfo = None
                     NegotiatingState = NegotiatingState.New()
                     Commitments = commitments
-                    SavedCurrentPerCommitmentPoint = None
                 }
 
             return this.FundingTx, channel
@@ -288,6 +288,7 @@ and ChannelWaitingForFundingCreated =
                                 |> Map.add
                                     (remoteCommit.TxId.Value.ToString())
                                     remoteCommit
+                            SavedCurrentPerCommitmentPoint = None
                         }
                     ChannelOptions = this.ChannelOptions
                     ChannelPrivKeys = this.ChannelPrivKeys
@@ -295,7 +296,6 @@ and ChannelWaitingForFundingCreated =
                     RemoteNextCommitInfo = None
                     NegotiatingState = NegotiatingState.New()
                     Commitments = commitments
-                    SavedCurrentPerCommitmentPoint = None
                 }
 
             return msgToSend, channel
@@ -523,9 +523,6 @@ and Channel =
         RemoteNextCommitInfo: Option<RemoteNextCommitInfo>
         NegotiatingState: NegotiatingState
         Commitments: Commitments
-        /// Stores my_current_per_commitment_point from data loss protect in case
-        /// remote proved to be ahead when doing sync check during processing of channel_reestablish
-        SavedCurrentPerCommitmentPoint: Option<PerCommitmentPoint>
     }
 
     member internal this.RemoteNextCommitInfoIfFundingLocked

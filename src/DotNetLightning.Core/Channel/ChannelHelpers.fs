@@ -54,8 +54,8 @@ module internal ChannelSyncing =
         (remoteNextCommitInfo: Option<RemoteNextCommitInfo>)
         (remoteChannelReestablish: ChannelReestablishMsg)
         : SyncResult =
+        // NOTE: since CommitmentNumber in DNL goes backwards (from 2^48 to 0), all comparison signs are reversed
         let checkRemoteCommit(retransmitRevocationList: list<ILightningMsg>) =
-            // NOTE: since CommitmentNumber in DNL goes backwards (from 2^48 to 0), all comparison signs are reversed
             match remoteNextCommitInfo with
             | Some(Waiting waitingForRevocation) when
                 remoteChannelReestablish.NextCommitmentNumber = waitingForRevocation.NextRemoteCommit.Index
