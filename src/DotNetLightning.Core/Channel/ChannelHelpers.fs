@@ -54,8 +54,8 @@ module ChannelSyncing =
         (remoteNextCommitInfo: Option<RemoteNextCommitInfo>)
         (remoteChannelReestablish: ChannelReestablishMsg)
         : SyncResult =
+        // NOTE: since CommitmentNumber in DNL goes backwards (from 2^48 to 0), all comparison signs are reversed
         let checkRemoteCommit(retransmitRevocationList: list<ILightningMsg>) =
-            // NOTE: since CommitmentNumber in DNL goes backwards (from 2^48 to 0), all comparison signs are reversed
             match remoteNextCommitInfo with
             | Some(Waiting waitingForRevocation) when
                 remoteChannelReestablish.NextCommitmentNumber = waitingForRevocation.NextRemoteCommit.Index
@@ -621,6 +621,7 @@ module ClosingHelpers =
             (staticChannelConfig: StaticChannelConfig)
             (channelPrivKeys: ChannelPrivKeys)
             (remoteCommit: RemoteCommit)
+            (storedRemotePerCommitmentPoint: PerCommitmentPoint option)
             =
             assert (remoteCommit.TxId = closingTx.GetTxId())
 
@@ -630,7 +631,9 @@ module ClosingHelpers =
                         closingTx
                         staticChannelConfig
                         channelPrivKeys
-                        remoteCommit.RemotePerCommitmentPoint
+                        (match storedRemotePerCommitmentPoint with
+                         | Some point -> point
+                         | None -> remoteCommit.RemotePerCommitmentPoint)
                 AnchorOutput =
                     ClaimAnchorOutput
                         closingTx
@@ -1625,6 +1628,7 @@ module ClosingHelpers =
                 savedChannelState.StaticChannelConfig
                 channelPrivKeys
                 savedChannelState.RemoteCommit
+                None
         else
             match remoteNextCommitInfoOpt with
             | Some(Waiting waitingForRevokation) when
@@ -1635,6 +1639,14 @@ module ClosingHelpers =
                     savedChannelState.StaticChannelConfig
                     channelPrivKeys
                     waitingForRevokation.NextRemoteCommit
+                    None
+            | _ when savedChannelState.RemoteCurrentPerCommitmentPoint.IsSome ->
+                RemoteClose.ClaimCommitTxOutputs
+                    closingTx
+                    savedChannelState.StaticChannelConfig
+                    channelPrivKeys
+                    savedChannelState.RemoteCommit
+                    savedChannelState.RemoteCurrentPerCommitmentPoint
             | _ ->
                 RevokedClose.ClaimCommitTxOutputs
                     closingTx

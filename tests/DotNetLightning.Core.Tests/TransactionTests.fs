@@ -333,6 +333,7 @@ let testList =
                         RemoteChanges = RemoteChanges.Zero
                         HistoricalRemoteCommits = Map.empty
                         HistoricalLocalCommits = Map.empty
+                        RemoteCurrentPerCommitmentPoint = None
                     }
 
                 let transactionBuilder =
@@ -340,7 +341,8 @@ let testList =
                         commitmentTx
                         remoteSavedChannelState.StaticChannelConfig
                         remoteChannelPrivKeys
-                        remoteRemoteCommit)
+                        remoteRemoteCommit
+                        None)
                         .MainOutput
                     |> Result.deref
 
@@ -780,6 +782,7 @@ let testList =
                         RemoteChanges = RemoteChanges.Zero
                         HistoricalRemoteCommits = Map.empty
                         HistoricalLocalCommits = Map.empty
+                        RemoteCurrentPerCommitmentPoint = None
                     }
 
                 let validateClosingResult
@@ -1167,6 +1170,7 @@ let testList =
                         RemoteChanges = RemoteChanges.Zero
                         HistoricalRemoteCommits = Map.empty
                         HistoricalLocalCommits = Map.empty
+                        RemoteCurrentPerCommitmentPoint = None
                     }
 
                 let remoteSpendingOldLocalCommitmentRes =

@@ -104,6 +104,7 @@ type ChannelWaitingForFundingSigned =
                                 |> Map.add
                                     (this.RemoteCommit.TxId.Value.ToString())
                                     this.RemoteCommit
+                            RemoteCurrentPerCommitmentPoint = None
                         }
                     ChannelOptions = this.ChannelOptions
                     ChannelPrivKeys = this.ChannelPrivKeys
@@ -287,6 +288,7 @@ and ChannelWaitingForFundingCreated =
                                 |> Map.add
                                     (remoteCommit.TxId.Value.ToString())
                                     remoteCommit
+                            RemoteCurrentPerCommitmentPoint = None
                         }
                     ChannelOptions = this.ChannelOptions
                     ChannelPrivKeys = this.ChannelPrivKeys

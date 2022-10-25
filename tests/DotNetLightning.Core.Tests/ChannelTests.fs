@@ -169,6 +169,7 @@ let tests =
                         RemoteChanges = RemoteChanges.Zero
                         HistoricalLocalCommits = Map.empty
                         HistoricalRemoteCommits = Map.empty
+                        RemoteCurrentPerCommitmentPoint = None
                     }
 
                 let commitments =
