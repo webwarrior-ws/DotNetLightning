@@ -2052,7 +2052,7 @@ and Channel =
 
     member this.ApplyChannelReestablish
         (theirReestablishMsg: ChannelReestablishMsg)
-        : Result<list<ILightningMsg> * Channel, ChannelError> =
+        : ChannelSyncResult =
         match
             checkSync
                 this.ChannelPrivKeys
@@ -2060,45 +2060,83 @@ and Channel =
                 this.RemoteNextCommitInfo
                 theirReestablishMsg
             with
-        | Success messages -> Ok(messages, this)
+        | Success _ as success ->
+            {
+                SyncResult = success
+                Channel = this
+            }
+        | LocalLateUnproven _ as syncResult ->
+            {
+                SyncResult = syncResult
+                Channel = this
+            }
+        | LocalLateProven
+            (
+                _ourLocalCommitmentNumber,
+                _theirRemoteCommitmentNumber,
+                currentPerCommitmentPoint
+            ) as syncResult ->
+            let newSavedState =
+                { this.SavedChannelState with
+                    RemoteCurrentPerCommitmentPoint =
+                        Some currentPerCommitmentPoint
+                }
+
+            {
+                SyncResult = syncResult
+                Channel =
+                    { this with
+                        SavedChannelState = newSavedState
+                    }
+            }
+        | RemoteLate as syncResult ->
+            {
+                SyncResult = syncResult
+                Channel = this
+            }
+        | RemoteLying _ as syncResult ->
+            {
+                SyncResult = syncResult
+                Channel = this
+            }
+
+and ChannelSyncResult =
+    {
+        SyncResult: SyncResult
+        Channel: Channel
+    }
+
+    member this.ErrorMessage =
+        match this.SyncResult with
+        | Success _ -> "no error"
         | LocalLateUnproven
             (
                 ourLocalCommitmentNumber, theirRemoteCommitmentNumber
             ) ->
-            Error
-            <| OutOfSync(
-                sprintf
-                    "local commitment number = %s, remote commitment number = %s"
-                    (ourLocalCommitmentNumber.ToString())
-                    (theirRemoteCommitmentNumber.ToString())
-            )
+            sprintf
+                "local commitment number = %s, remote commitment number = %s"
+                (ourLocalCommitmentNumber.ToString())
+                (theirRemoteCommitmentNumber.ToString())
         | LocalLateProven
             (
                 ourLocalCommitmentNumber,
                 theirRemoteCommitmentNumber,
                 currentPerCommitmentPoint
             ) ->
-            let message =
-                sprintf
-                    "local commitment number = %s, remote commitment number = %s, current per commitment point = %s"
-                    (ourLocalCommitmentNumber.ToString())
-                    (theirRemoteCommitmentNumber.ToString())
-                    (currentPerCommitmentPoint.ToString())
-
-            Error
-            <| OutOfSyncLocalLateProven(message, currentPerCommitmentPoint)
-        | RemoteLate -> Error <| OutOfSync "remote is late"
+            sprintf
+                "local commitment number = %s, remote commitment number = %s, current per commitment point = %s"
+                (ourLocalCommitmentNumber.ToString())
+                (theirRemoteCommitmentNumber.ToString())
+                (currentPerCommitmentPoint.ToString())
+        | RemoteLate -> "remote is late"
         | RemoteLying
             (
                 ourLocalCommitmentNumber,
                 theirRemoteCommitmentNumber,
                 invalidPerCommitmentSecret
             ) ->
-            let message =
-                sprintf
-                    "remote is lying (local commitment number = %s, remote commitment number = %s, remote invalid per commitment secret = %A)"
-                    (ourLocalCommitmentNumber.ToString())
-                    (theirRemoteCommitmentNumber.ToString())
-                    invalidPerCommitmentSecret
-
-            Error <| OutOfSyncRemoteLying message
+            sprintf
+                "remote is lying (local commitment number = %s, remote commitment number = %s, remote invalid per commitment secret = %A)"
+                (ourLocalCommitmentNumber.ToString())
+                (theirRemoteCommitmentNumber.ToString())
+                invalidPerCommitmentSecret

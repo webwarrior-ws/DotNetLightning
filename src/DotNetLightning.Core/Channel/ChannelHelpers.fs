@@ -32,7 +32,7 @@ module internal ChannelConstantHelpers =
         Money.Min(channelValue, Money.Max(q, Money.Satoshis(1L)))
 
 
-module internal ChannelSyncing =
+module ChannelSyncing =
     type SyncResult =
         | RemoteLate
         | LocalLateProven of
