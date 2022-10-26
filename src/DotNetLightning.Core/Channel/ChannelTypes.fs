@@ -60,7 +60,7 @@ type SavedChannelState =
         RemoteChanges: RemoteChanges
         /// Stores my_current_per_commitment_point from data loss protect in case
         /// remote proved to be ahead when doing sync check during processing of channel_reestablish
-        SavedCurrentPerCommitmentPoint: Option<PerCommitmentPoint>
+        RemoteCurrentPerCommitmentPoint: Option<PerCommitmentPoint>
     }
 
     member internal this.HasNoPendingHTLCs
