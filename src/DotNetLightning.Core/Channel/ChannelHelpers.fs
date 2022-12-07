@@ -71,7 +71,7 @@ module ChannelSyncing =
                     |> List.singleton
 
                 match List.tryHead retransmitRevocationList with
-                | None
+                | None -> SyncResult.Success(signedUpdates @ commitSigList)
                 | Some _ when
                     savedChannelState.LocalCommit.Index < waitingForRevocation.SentAfterLocalCommitIndex
                     ->
@@ -82,7 +82,6 @@ module ChannelSyncing =
                     SyncResult.Success(
                         retransmitRevocationList @ signedUpdates @ commitSigList
                     )
-                | _ -> failwith "unreachable"
             | Some(Waiting waitingForRevocation) when
                 remoteChannelReestablish.NextCommitmentNumber = (waitingForRevocation.NextRemoteCommit.Index.NextCommitment
                                                                      ())
