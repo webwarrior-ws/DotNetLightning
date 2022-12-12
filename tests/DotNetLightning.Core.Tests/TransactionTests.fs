@@ -341,7 +341,8 @@ let testList =
                         commitmentTx
                         remoteSavedChannelState.StaticChannelConfig
                         remoteChannelPrivKeys
-                        remoteRemoteCommit)
+                        remoteRemoteCommit
+                        None)
                         .MainOutput
                     |> Result.deref
 

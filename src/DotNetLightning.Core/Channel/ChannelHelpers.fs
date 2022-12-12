@@ -622,6 +622,7 @@ module ClosingHelpers =
             (staticChannelConfig: StaticChannelConfig)
             (channelPrivKeys: ChannelPrivKeys)
             (remoteCommit: RemoteCommit)
+            (storedRemotePerCommitmentPoint: PerCommitmentPoint option)
             =
             assert (remoteCommit.TxId = closingTx.GetTxId())
 
@@ -631,7 +632,9 @@ module ClosingHelpers =
                         closingTx
                         staticChannelConfig
                         channelPrivKeys
-                        remoteCommit.RemotePerCommitmentPoint
+                        (match storedRemotePerCommitmentPoint with
+                         | Some point -> point
+                         | None -> remoteCommit.RemotePerCommitmentPoint)
                 AnchorOutput =
                     ClaimAnchorOutput
                         closingTx
@@ -1606,8 +1609,15 @@ module ClosingHelpers =
         : ClosingResult =
         let closingTxId = closingTx.GetTxId()
 
-        if closingTxId = savedChannelState.LocalCommit.PublishableTxs.CommitTx.Value.GetTxId
-                             () then
+        if savedChannelState.RemoteCurrentPerCommitmentPoint.IsSome then
+            RemoteClose.ClaimCommitTxOutputs
+                closingTx
+                savedChannelState.StaticChannelConfig
+                channelPrivKeys
+                savedChannelState.RemoteCommit
+                savedChannelState.RemoteCurrentPerCommitmentPoint
+        elif closingTxId = savedChannelState.LocalCommit.PublishableTxs.CommitTx.Value.GetTxId
+                               () then
             LocalClose.ClaimCommitTxOutputs
                 closingTx
                 savedChannelState.StaticChannelConfig
@@ -1626,6 +1636,7 @@ module ClosingHelpers =
                 savedChannelState.StaticChannelConfig
                 channelPrivKeys
                 savedChannelState.RemoteCommit
+                None
         else
             match remoteNextCommitInfoOpt with
             | Some(Waiting waitingForRevokation) when
@@ -1636,6 +1647,7 @@ module ClosingHelpers =
                     savedChannelState.StaticChannelConfig
                     channelPrivKeys
                     waitingForRevokation.NextRemoteCommit
+                    None
             | _ ->
                 RevokedClose.ClaimCommitTxOutputs
                     closingTx
