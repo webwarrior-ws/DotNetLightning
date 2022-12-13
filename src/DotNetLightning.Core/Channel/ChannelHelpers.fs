@@ -1609,15 +1609,8 @@ module ClosingHelpers =
         : ClosingResult =
         let closingTxId = closingTx.GetTxId()
 
-        if savedChannelState.RemoteCurrentPerCommitmentPoint.IsSome then
-            RemoteClose.ClaimCommitTxOutputs
-                closingTx
-                savedChannelState.StaticChannelConfig
-                channelPrivKeys
-                savedChannelState.RemoteCommit
-                savedChannelState.RemoteCurrentPerCommitmentPoint
-        elif closingTxId = savedChannelState.LocalCommit.PublishableTxs.CommitTx.Value.GetTxId
-                               () then
+        if closingTxId = savedChannelState.LocalCommit.PublishableTxs.CommitTx.Value.GetTxId
+                             () then
             LocalClose.ClaimCommitTxOutputs
                 closingTx
                 savedChannelState.StaticChannelConfig
@@ -1648,6 +1641,13 @@ module ClosingHelpers =
                     channelPrivKeys
                     waitingForRevokation.NextRemoteCommit
                     None
+            | _ when savedChannelState.RemoteCurrentPerCommitmentPoint.IsSome ->
+                RemoteClose.ClaimCommitTxOutputs
+                    closingTx
+                    savedChannelState.StaticChannelConfig
+                    channelPrivKeys
+                    savedChannelState.RemoteCommit
+                    savedChannelState.RemoteCurrentPerCommitmentPoint
             | _ ->
                 RevokedClose.ClaimCommitTxOutputs
                     closingTx
