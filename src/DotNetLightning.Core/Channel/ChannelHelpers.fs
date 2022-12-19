@@ -45,7 +45,7 @@ module ChannelSyncing =
         | RemoteLying of
             ourLocalCommitmentNumber: CommitmentNumber *
             theirRemoteCommitmentNumber: CommitmentNumber *
-            invalidPerCommitmentSecret: option<PerCommitmentPoint>
+            invalidPerCommitmentSecret: PerCommitmentSecret
         | Success of retransmitRevocation: list<ILightningMsg>
 
     let checkSync
@@ -175,8 +175,7 @@ module ChannelSyncing =
                     SyncResult.RemoteLying(
                         savedChannelState.LocalCommit.Index,
                         remoteChannelReestablish.NextRevocationNumber,
-                        dataLossProtect.YourLastPerCommitmentSecret
-                        |> Option.map(fun secret -> secret.PerCommitmentPoint())
+                        dataLossProtect.YourLastPerCommitmentSecret.Value
                     )
             | None -> SyncResult.Success []
 
