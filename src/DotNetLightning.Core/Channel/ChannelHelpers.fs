@@ -178,7 +178,7 @@ module ChannelSyncing =
                         dataLossProtect.YourLastPerCommitmentSecret
                         |> Option.map(fun secret -> secret.PerCommitmentPoint())
                     )
-            | None -> failwith "data_loss_protect is absent"
+            | None -> SyncResult.Success []
 
 
 module ClosingHelpers =
